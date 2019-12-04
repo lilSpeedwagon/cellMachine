@@ -2,6 +2,7 @@ package main
 
 import (
 	"cellMachine/pkg/gui"
+	"github.com/andlabs/ui"
 	"log"
 	"os"
 )
@@ -30,7 +31,11 @@ func main() {
 	initLog()
 	Log.Println("Application initialization...")
 	core := gui.Uicore{}
-	core.Init()
-	core.ShowWindow()
+	ui.Main(core.Init)
 	Log.Println("Ready")
 }
+
+/*
+	TBD:
+		move UI code to another thread
+ */

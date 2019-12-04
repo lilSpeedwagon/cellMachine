@@ -65,6 +65,8 @@ func (core *Uicore) Init()	{
 	core.area = ui.NewArea(AreaHandler{})
 	vbox.Append(core.area, true)
 	Log.Println("UI is ready.")
+
+	core.mainwin.Show()
 }
 
 func (core *Uicore) ShowWindow()	{
@@ -105,23 +107,19 @@ func (AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 }
 
 func (AreaHandler) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
-	Log.Println("MouseEvent call.")
 	// do nothing
 }
 
 func (AreaHandler) MouseCrossed(a *ui.Area, left bool) {
-	Log.Println("MouseCrossed call.")
 	// do nothing
 }
 
 func (AreaHandler) DragBroken(a *ui.Area) {
-	Log.Println("DragBroken call.")
 	// do nothing
 }
 
 func (AreaHandler) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
 	// reject all keys
-	Log.Println("KeyEvent call.")
 	return false
 }
 
