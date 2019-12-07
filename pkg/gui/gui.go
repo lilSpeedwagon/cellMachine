@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"cellMachine/pkg/utils"
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
 	"log"
@@ -8,13 +9,13 @@ import (
 	"os"
 )
 
-var(
-	Log *log.Logger
+var (
+	Log     *log.Logger
 	Warning *log.Logger
-	Error *log.Logger
+	Error   *log.Logger
 )
 
-func initUILog()	{
+func initUILog() {
 	Log = log.New(os.Stdout,
 		"UI LOG: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
@@ -32,16 +33,24 @@ type Point struct {
 	x, y float64
 }
 
-type Color struct {
-	a, r, g, b float64
-}
+var (
+	strokeBrush = ui.DrawBrush{
+		R: 0.0,
+		G: 0.0,
+		B: 0.0,
+		A: 0.6,
+	}
+	strokeParams = ui.DrawStrokeParams{
+		Thickness: 1.0,
+	}
+)
 
 type Uicore struct {
 	mainwin *ui.Window
-	area *ui.Area
+	area    *ui.Area
 }
 
-func (core *Uicore) Init()	{
+func (core *Uicore) Init() {
 	initUILog()
 	Log.Println("UI initialization...")
 	core.mainwin = ui.NewWindow("cell machine", 800, 800, true)
@@ -69,11 +78,11 @@ func (core *Uicore) Init()	{
 	core.mainwin.Show()
 }
 
-func (core *Uicore) ShowWindow()	{
+func (core *Uicore) ShowWindow() {
 	core.mainwin.Show()
 }
 
-func drawLine(from, to Point, color Color) *ui.DrawPath	{
+func drawLine(from, to Point) *ui.DrawPath {
 	path := ui.DrawNewPath(ui.DrawFillModeWinding)
 	path.NewFigure(from.x, from.y)
 	path.LineTo(to.x, to.y)
@@ -81,29 +90,54 @@ func drawLine(from, to Point, color Color) *ui.DrawPath	{
 	return path
 }
 
-func drawRect(from, to Point, color Color) *ui.DrawPath 	{
+func drawRect(from Point, w, h float64) *ui.DrawPath {
 	path := ui.DrawNewPath(ui.DrawFillModeWinding)
-	width := to.x - from.x
-	height := to.y - from.y
-	path.AddRectangle(from.x, from.y, width, height)
+	path.AddRectangle(from.x, from.y, w, h)
 	path.End()
 	return path
 }
 
-func drawCircle(center Point, radius float64) *ui.DrawPath	{
+func drawCircle(center Point, radius float64) *ui.DrawPath {
 	path := ui.DrawNewPath(ui.DrawFillModeWinding)
-	path.NewFigureWithArc(center.x, center.y, radius, 0, 2 * math.Pi, false)
+	path.NewFigureWithArc(center.x, center.y, radius, 0, 2*math.Pi, false)
 	path.End()
 	return path
+}
+
+func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
+	cellWidth := params.AreaWidth / float64(composer.W)
+	cellHeight := params.AreaHeight / float64(composer.H)
+
+	for i := range composer.Cells {
+
+		for j := range composer.Cells[i] {
+			cellComposer := &composer.Cells[i][j]
+			brush := ui.DrawBrush{
+				R: cellComposer.BackColor.R,
+				G: cellComposer.BackColor.G,
+				B: cellComposer.BackColor.B,
+				A: cellComposer.BackColor.A,
+			}
+			path := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellHeight, cellHeight)
+			params.Context.Fill(path, &brush)
+			params.Context.Stroke(path, &strokeBrush, &strokeParams)
+		}
+	}
 }
 
 type AreaHandler struct{}
 
 func (AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 	Log.Println("Draw call.")
-	path := drawCircle(Point{300, 300}, 100)
+
+	w := 40
+	h := 40
+	composer := utils.DefaultFieldComposer(w, h)
+	handleComposer(composer, p)
+
+	/*path := drawCircle(Point{300, 300}, 100)
 	brush := ui.DrawBrush{A:1,R:1,G:1,B:1}
-	p.Context.Fill(path, &brush)
+	p.Context.Fill(path, &brush)*/
 }
 
 func (AreaHandler) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
@@ -122,4 +156,3 @@ func (AreaHandler) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
 	// reject all keys
 	return false
 }
-

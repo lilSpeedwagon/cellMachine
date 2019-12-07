@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	Log *log.Logger
+	Log     *log.Logger
 	Warning *log.Logger
-	Error *log.Logger
+	Error   *log.Logger
 )
 
-func initLog()	{
+func initLog() {
 	Log = log.New(os.Stdout,
 		"LOG: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
@@ -30,12 +30,14 @@ func initLog()	{
 func main() {
 	initLog()
 	Log.Println("Application initialization...")
+
 	core := gui.Uicore{}
-	ui.Main(core.Init)
+	/*go*/ ui.Main(core.Init)
+
 	Log.Println("Ready")
 }
 
 /*
 	TBD:
 		move UI code to another thread
- */
+*/
