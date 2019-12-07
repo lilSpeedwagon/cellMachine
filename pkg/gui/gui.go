@@ -46,8 +46,10 @@ var (
 )
 
 type Uicore struct {
-	mainwin *ui.Window
-	area    *ui.Area
+	CloseApp chan bool
+	Composer chan utils.FieldComposer
+	mainwin  *ui.Window
+	area     *ui.Area
 }
 
 func (core *Uicore) Init() {
@@ -75,11 +77,18 @@ func (core *Uicore) Init() {
 	vbox.Append(core.area, true)
 	Log.Println("UI is ready.")
 
+	core.mainwin.OnClosing(core.OnCloseWindow)
 	core.mainwin.Show()
 }
 
 func (core *Uicore) ShowWindow() {
 	core.mainwin.Show()
+}
+
+func (core *Uicore) OnCloseWindow(window *ui.Window) bool {
+	Log.Println("Closing window...")
+	close(core.CloseApp)
+	return true
 }
 
 func drawLine(from, to Point) *ui.DrawPath {

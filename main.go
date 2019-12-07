@@ -2,6 +2,7 @@ package main
 
 import (
 	"cellMachine/pkg/gui"
+	"cellMachine/pkg/utils"
 	"github.com/andlabs/ui"
 	"log"
 	"os"
@@ -31,13 +32,14 @@ func main() {
 	initLog()
 	Log.Println("Application initialization...")
 
-	core := gui.Uicore{}
-	/*go*/ ui.Main(core.Init)
+	closeApp := make(chan bool)
+	composer := make(chan utils.FieldComposer)
+
+	core := gui.Uicore{CloseApp: closeApp, Composer: composer}
+	go ui.Main(core.Init)
 
 	Log.Println("Ready")
-}
 
-/*
-	TBD:
-		move UI code to another thread
-*/
+	<-closeApp
+	Log.Println("Closing application...")
+}
