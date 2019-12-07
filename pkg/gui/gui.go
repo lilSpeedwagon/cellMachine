@@ -109,7 +109,6 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 	cellHeight := params.AreaHeight / float64(composer.H)
 
 	for i := range composer.Cells {
-
 		for j := range composer.Cells[i] {
 			cellComposer := &composer.Cells[i][j]
 			brush := ui.DrawBrush{
@@ -118,10 +117,22 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 				B: cellComposer.BackColor.B,
 				A: cellComposer.BackColor.A,
 			}
-			path := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellHeight, cellHeight)
+			path := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellWidth, cellHeight)
 			params.Context.Fill(path, &brush)
-			params.Context.Stroke(path, &strokeBrush, &strokeParams)
+			//params.Context.Stroke(path, &strokeBrush, &strokeParams)
 		}
+	}
+
+	// lines
+	for i := 1; i < composer.W; i++ {
+		x := cellWidth * float64(i)
+		path := drawLine(Point{x, 0}, Point{x, params.AreaHeight})
+		params.Context.Stroke(path, &strokeBrush, &strokeParams)
+	}
+	for i := 1; i < composer.H; i++ {
+		y := cellHeight * float64(i)
+		path := drawLine(Point{0, y}, Point{params.AreaWidth, y})
+		params.Context.Stroke(path, &strokeBrush, &strokeParams)
 	}
 }
 
@@ -131,7 +142,7 @@ func (AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 	Log.Println("Draw call.")
 
 	w := 40
-	h := 40
+	h := 30
 	composer := utils.DefaultFieldComposer(w, h)
 	handleComposer(composer, p)
 
