@@ -1,3 +1,4 @@
 *.exe
-bin/*
-.idea/*
+/bin/*
+/.idea/*
+/.idea/workspace.xml
