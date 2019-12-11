@@ -25,13 +25,20 @@ func DefaultEntityComposer() EntityComposer {
 	}
 }
 
+func EmptyEntityComposer() EntityComposer {
+	return EntityComposer{
+		Color: DefaultColor(),
+		Size:  0,
+	}
+}
+
 type CellComposer struct {
 	BackColor Color
-	Composer  *EntityComposer
+	Composer  EntityComposer
 }
 
 func DefaultCellComposer() CellComposer {
-	return CellComposer{DefaultColor(), nil}
+	return CellComposer{DefaultColor(), EmptyEntityComposer()}
 }
 
 type FieldComposer struct {

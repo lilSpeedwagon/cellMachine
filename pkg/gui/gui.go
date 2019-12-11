@@ -7,12 +7,14 @@ import (
 	"log"
 	"math"
 	"os"
+	"time"
 )
 
 var (
-	Log     *log.Logger
-	Warning *log.Logger
-	Error   *log.Logger
+	Log         *log.Logger
+	Warning     *log.Logger
+	Error       *log.Logger
+	redrawDelay = 100 * time.Millisecond
 )
 
 func initUILog() {
@@ -46,39 +48,47 @@ var (
 )
 
 type Uicore struct {
-	CloseApp chan bool
-	Composer chan utils.FieldComposer
-	mainwin  *ui.Window
-	area     *ui.Area
+	CloseApp     chan<- bool
+	ComposerChan <-chan utils.FieldComposer
+	mainwin      *ui.Window
+	area         *ui.Area
+	redrawTimer  time.Ticker
 }
 
 func (core *Uicore) Init() {
 	initUILog()
 	Log.Println("UI initialization...")
+
 	core.mainwin = ui.NewWindow("cell machine", 800, 800, true)
 	core.mainwin.SetMargined(true)
-
 	core.mainwin.OnClosing(func(*ui.Window) bool {
 		Log.Println("Closing...")
 		core.mainwin.Destroy()
 		ui.Quit()
 		return false
 	})
+	vbox := ui.NewVerticalBox()
+	core.mainwin.SetChild(vbox)
+	core.mainwin.OnClosing(core.OnCloseWindow)
+	core.mainwin.Show()
 
 	ui.OnShouldQuit(func() bool {
 		core.mainwin.Destroy()
 		return true
 	})
 
-	vbox := ui.NewVerticalBox()
-	core.mainwin.SetChild(vbox)
-
-	core.area = ui.NewArea(AreaHandler{})
+	areaHandler := AreaHandler{ComposerChannel: core.ComposerChan}
+	core.area = ui.NewArea(&areaHandler)
 	vbox.Append(core.area, true)
-	Log.Println("UI is ready.")
 
-	core.mainwin.OnClosing(core.OnCloseWindow)
-	core.mainwin.Show()
+	core.redrawTimer = *time.NewTicker(redrawDelay)
+	go func() {
+		for range core.redrawTimer.C {
+			core.area.QueueRedrawAll()
+		}
+	}()
+
+	Log.Println("UI is ready.")
 }
 
 func (core *Uicore) ShowWindow() {
@@ -87,7 +97,7 @@ func (core *Uicore) ShowWindow() {
 
 func (core *Uicore) OnCloseWindow(window *ui.Window) bool {
 	Log.Println("Closing window...")
-	close(core.CloseApp)
+	core.CloseApp <- true
 	return true
 }
 
@@ -145,19 +155,24 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 	}
 }
 
-type AreaHandler struct{}
+type AreaHandler struct {
+	ComposerChannel <-chan utils.FieldComposer
+	Composer        utils.FieldComposer
+}
 
-func (AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
+func (handler *AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 	Log.Println("Draw call.")
 
-	w := 40
-	h := 30
-	composer := utils.DefaultFieldComposer(w, h)
-	handleComposer(composer, p)
+	// non blocking composer receiving
+	select {
+	case handler.Composer = <-handler.ComposerChannel:
+		Log.Println("New field composer received.")
+	default:
+	}
 
-	/*path := drawCircle(Point{300, 300}, 100)
-	brush := ui.DrawBrush{A:1,R:1,G:1,B:1}
-	p.Context.Fill(path, &brush)*/
+	if handler.Composer.Cells != nil {
+		handleComposer(handler.Composer, p)
+	}
 }
 
 func (AreaHandler) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
