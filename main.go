@@ -2,11 +2,11 @@ package main
 
 import (
 	"cellMachine/pkg/gui"
+	"cellMachine/pkg/sim"
 	"cellMachine/pkg/utils"
 	"github.com/andlabs/ui"
 	"log"
 	"os"
-	"time"
 )
 
 var (
@@ -39,28 +39,18 @@ func main() {
 	core := gui.Uicore{CloseApp: closeApp, ComposerChan: composerChan}
 	go ui.Main(core.Init)
 
+	w := 50
+	h := 50
+
+	var simulator sim.Simulator
+	simulator.Init(w, h, composerChan)
+
 	Log.Println("Ready")
 
-	composer := utils.DefaultFieldComposer(30, 30)
-	composerChan <- composer
-
-	f := true
-	i := 0
-	for f {
-		cell := utils.DefaultCellComposer()
-		cell.BackColor = utils.Color{
-			A: 1.0,
-			R: 1.0,
-			G: 0,
-			B: 0,
-		}
-		composer.Cells[1][i] = cell
-		composerChan <- composer
-		i++
-		time.Sleep(time.Second / 2)
-	}
+	go simulator.Start()
 
 	<-closeApp
+	simulator.Stop()
 	close(closeApp)
 	close(composerChan)
 	Log.Println("Closing application...")

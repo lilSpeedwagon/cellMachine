@@ -31,6 +31,15 @@ func initUILog() {
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
+func NewBrush(color utils.Color) ui.DrawBrush {
+	var brush ui.DrawBrush
+	brush.A = color.A
+	brush.R = color.R
+	brush.G = color.G
+	brush.B = color.B
+	return brush
+}
+
 type Point struct {
 	x, y float64
 }
@@ -130,14 +139,19 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 	for i := range composer.Cells {
 		for j := range composer.Cells[i] {
 			cellComposer := &composer.Cells[i][j]
-			brush := ui.DrawBrush{
-				R: cellComposer.BackColor.R,
-				G: cellComposer.BackColor.G,
-				B: cellComposer.BackColor.B,
-				A: cellComposer.BackColor.A,
+			brush := NewBrush(cellComposer.BackColor)
+			cellPath := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellWidth, cellHeight)
+			params.Context.Fill(cellPath, &brush)
+			if cellComposer.Composer.Size > 0 {
+				center := Point{cellWidth * (float64(i) + 0.5), cellHeight * (float64(j) + 0.5)}
+				radius := float64(cellComposer.Composer.Size) * cellWidth * 0.5
+				if cellWidth > cellHeight {
+					radius = float64(cellComposer.Composer.Size) * cellHeight * 0.5
+				}
+				entityPath := drawCircle(center, radius)
+				brush = NewBrush(cellComposer.Composer.Color)
+				params.Context.Fill(entityPath, &brush)
 			}
-			path := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellWidth, cellHeight)
-			params.Context.Fill(path, &brush)
 			//params.Context.Stroke(path, &strokeBrush, &strokeParams)
 		}
 	}
