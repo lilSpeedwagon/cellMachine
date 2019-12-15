@@ -1,8 +1,10 @@
 package sim
 
 import (
+	"cellMachine/pkg/Cell"
 	"cellMachine/pkg/utils"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -12,7 +14,7 @@ var (
 	Warning *log.Logger
 	Error   *log.Logger
 
-	turnDelay = time.Second / 2
+	turnDelay = time.Second / 10
 )
 
 func initLog() {
@@ -30,7 +32,7 @@ func initLog() {
 }
 
 type Simulator struct {
-	field        *CellField
+	field        *Cell.CellField
 	ComposerChan chan<- utils.FieldComposer
 	turnTimer    time.Ticker
 	turnCounter  int
@@ -41,58 +43,32 @@ func (simulator *Simulator) Init(w, h int, composerChan chan utils.FieldComposer
 	Log.Println("Simulation init")
 
 	simulator.ComposerChan = composerChan
-	simulator.field = NewField(w, h)
+	simulator.field = Cell.NewField(w, h)
 
-	color := utils.Color{1.0, 1.0, 0, 0}
+	e := *Cell.NewEntity()
+
 	for i := 23; i <= 26; i++ {
 		for j := 23; j <= 26; j++ {
-			simulator.field.Cells[i][j].Entity = NewEntity(color, 0.8)
+			simulator.field.PutEntity(e, i, j)
 		}
 	}
 
-	simulator.ComposerChan <- simulator.field.makeComposer()
+	simulator.ComposerChan <- simulator.field.MakeComposer()
 
 	Log.Println("Ready.")
-}
-
-func count(w, h, x, y int, cells [][]Cell) int {
-	count := 0
-	for i := x - 1; i <= x+1; i++ {
-		for j := y - 1; j <= y+1; j++ {
-			posX := (i + w) % w
-			posY := (j + h) % h
-			if cells[posX][posY].Entity != nil {
-				count++
-			}
-		}
-	}
-	return count
 }
 
 func (sim *Simulator) turn() {
 	sim.turnCounter++
 	Log.Println("Turn ", sim.turnCounter)
-	w := sim.field.W
-	h := sim.field.H
-	newField := NewField(w, h)
-
-	color := utils.Color{1.0, 1.0, 0, 0}
-	for i := 0; i < w; i++ {
-		for j := 0; j < h; j++ {
-			count := count(w, h, i, j, sim.field.Cells)
-			if count == 2 || count == 3 {
-				newField.Cells[i][j].Entity = NewEntity(color, 0.8)
-			}
-		}
-	}
-
-	sim.field = newField
-	composer := sim.field.makeComposer()
+	sim.field.Update()
+	composer := sim.field.MakeComposer()
 	sim.ComposerChan <- composer
 }
 
 func (sim *Simulator) Start() {
 	Log.Println("Starting simulation...")
+	rand.Seed(time.Now().UnixNano())
 	sim.turnCounter = 0
 	sim.turnTimer = *time.NewTicker(turnDelay)
 	go func() {

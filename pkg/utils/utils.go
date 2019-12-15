@@ -1,5 +1,7 @@
 package utils
 
+import "math/rand"
+
 // less or equal to 1.0
 type Size float32
 
@@ -8,7 +10,7 @@ type Color struct {
 }
 
 func DefaultColor() Color {
-	return Color{1.0, 0.7, 0.9, 1.0}
+	return Color{1.0, 0.7, 1.0, 0.7}
 }
 
 // composer is an entry for storing visual representation of cells
@@ -56,4 +58,13 @@ func DefaultFieldComposer(w, h int) FieldComposer {
 		}
 	}
 	return composer
+}
+
+func MutateFloat64(num, chance float64) float64 {
+	dice := rand.Float64()
+	if dice <= chance {
+		factor := rand.Float64()/10 + 0.95 // from 0.95 to 1.05
+		num *= factor
+	}
+	return num
 }
