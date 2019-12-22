@@ -7,7 +7,16 @@ import (
 	"log"
 	"math"
 	"os"
+	"strconv"
 	"time"
+)
+
+const (
+	strMutations = "Mutations: "
+	strTurns     = "Turns: "
+	fieldW       = 800
+	fieldH       = 800
+	infoH        = 100
 )
 
 var (
@@ -59,36 +68,40 @@ var (
 type Uicore struct {
 	CloseApp     chan<- bool
 	ComposerChan <-chan utils.FieldComposer
-	mainwin      *ui.Window
-	area         *ui.Area
 	redrawTimer  time.Ticker
+
+	mainwin       *ui.Window
+	area          *ui.Area
+	turnLabel     *ui.Label
+	mutationLabel *ui.Label
 }
 
 func (core *Uicore) Init() {
 	initUILog()
 	Log.Println("UI initialization...")
 
-	core.mainwin = ui.NewWindow("cell machine", 800, 800, true)
+	core.mainwin = ui.NewWindow("cell machine", fieldW, fieldH+infoH, true)
 	core.mainwin.SetMargined(true)
-	core.mainwin.OnClosing(func(*ui.Window) bool {
-		Log.Println("Closing...")
-		core.mainwin.Destroy()
-		ui.Quit()
-		return false
-	})
-	vbox := ui.NewVerticalBox()
-	core.mainwin.SetChild(vbox)
 	core.mainwin.OnClosing(core.OnCloseWindow)
-	core.mainwin.Show()
+
+	infoBox := ui.NewHorizontalBox()
+	core.turnLabel = ui.NewLabel("Turns: ")
+	infoBox.Append(core.turnLabel, true)
+	core.mutationLabel = ui.NewLabel("Mutations: ")
+	infoBox.Append(core.mutationLabel, true)
+
+	areaHandler := areaHandler{composerChannel: core.ComposerChan, core: core}
+	core.area = ui.NewArea(&areaHandler)
+
+	gameBox := ui.NewVerticalBox()
+	gameBox.Append(core.area, true)
+	gameBox.Append(infoBox, false)
+	core.mainwin.SetChild(gameBox)
 
 	ui.OnShouldQuit(func() bool {
 		core.mainwin.Destroy()
 		return true
 	})
-
-	areaHandler := AreaHandler{ComposerChannel: core.ComposerChan}
-	core.area = ui.NewArea(&areaHandler)
-	vbox.Append(core.area, true)
 
 	core.redrawTimer = *time.NewTicker(redrawDelay)
 	go func() {
@@ -97,6 +110,7 @@ func (core *Uicore) Init() {
 		}
 	}()
 
+	core.mainwin.Show()
 	Log.Println("UI is ready.")
 }
 
@@ -106,7 +120,9 @@ func (core *Uicore) ShowWindow() {
 
 func (core *Uicore) OnCloseWindow(window *ui.Window) bool {
 	Log.Println("Closing window...")
+	core.mainwin.Destroy()
 	core.CloseApp <- true
+	ui.Quit()
 	return true
 }
 
@@ -152,7 +168,6 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 				brush = NewBrush(cellComposer.Composer.Color)
 				params.Context.Fill(entityPath, &brush)
 			}
-			//params.Context.Stroke(path, &strokeBrush, &strokeParams)
 		}
 	}
 
@@ -169,39 +184,41 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 	}
 }
 
-type AreaHandler struct {
-	ComposerChannel <-chan utils.FieldComposer
-	Composer        utils.FieldComposer
+type areaHandler struct {
+	composerChannel <-chan utils.FieldComposer
+	core            *Uicore
+	contextStored   bool
 }
 
-func (handler *AreaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
+func (handler *areaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 	Log.Println("Draw call.")
-
 	// non blocking composer receiving
-	select {
+	/*select {
 	case handler.Composer = <-handler.ComposerChannel:
 		Log.Println("New field composer received.")
 	default:
+	}*/
+	composer := <-handler.composerChannel
+	handler.core.turnLabel.SetText(strTurns + strconv.FormatUint(composer.Turns, 10))
+	handler.core.mutationLabel.SetText(strMutations + strconv.FormatUint(composer.Mutations, 10))
+	if composer.Cells != nil {
+		handleComposer(composer, p)
 	}
-
-	if handler.Composer.Cells != nil {
-		handleComposer(handler.Composer, p)
-	}
 }
 
-func (AreaHandler) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
+func (areaHandler) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
 	// do nothing
 }
 
-func (AreaHandler) MouseCrossed(a *ui.Area, left bool) {
+func (areaHandler) MouseCrossed(a *ui.Area, left bool) {
 	// do nothing
 }
 
-func (AreaHandler) DragBroken(a *ui.Area) {
+func (areaHandler) DragBroken(a *ui.Area) {
 	// do nothing
 }
 
-func (AreaHandler) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
+func (areaHandler) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
 	// reject all keys
 	return false
 }

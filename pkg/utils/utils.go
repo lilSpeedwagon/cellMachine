@@ -1,9 +1,13 @@
 package utils
 
-import "math/rand"
+type Ready struct{}
 
 // less or equal to 1.0
 type Size float32
+
+type Position struct {
+	X, Y int
+}
 
 type Color struct {
 	A, R, G, B float64
@@ -44,8 +48,18 @@ func DefaultCellComposer() CellComposer {
 }
 
 type FieldComposer struct {
-	Cells [][]CellComposer
-	W, H  int
+	Cells            [][]CellComposer
+	W, H             int
+	Turns, Mutations uint64
+}
+
+func MakeFieldComposer(w, h int) FieldComposer {
+	composer := FieldComposer{W: w, H: h}
+	composer.Cells = make([][]CellComposer, w)
+	for i := range composer.Cells {
+		composer.Cells[i] = make([]CellComposer, h)
+	}
+	return composer
 }
 
 func DefaultFieldComposer(w, h int) FieldComposer {
@@ -58,13 +72,4 @@ func DefaultFieldComposer(w, h int) FieldComposer {
 		}
 	}
 	return composer
-}
-
-func MutateFloat64(num, chance float64) float64 {
-	dice := rand.Float64()
-	if dice <= chance {
-		factor := rand.Float64()/10 + 0.95 // from 0.95 to 1.05
-		num *= factor
-	}
-	return num
 }

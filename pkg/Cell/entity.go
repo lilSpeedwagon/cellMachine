@@ -2,6 +2,8 @@ package Cell
 
 import (
 	"cellMachine/pkg/utils"
+	"math"
+	"math/rand"
 )
 
 const (
@@ -9,58 +11,75 @@ const (
 	maxSize             = utils.Size(0.95)
 	baseResistance      = 10
 	baseConsumptionBase = 5
-	baseMutationChance  = 0.05
+	baseMutationChance  = 0.01
 	baseGrownRateBase   = 0.2
 )
+
+var MutationCounter uint64
+
+type Mutator struct {
+	mutationChance float64
+}
+
+func newMutator() Mutator {
+	return Mutator{mutationChance: baseMutationChance}
+}
+
+func (m *Mutator) MutateFloat64(num float64) float64 {
+	dice := rand.Float64()
+	if dice <= m.mutationChance {
+		factor := rand.Float64() + 0.5 // from 0.95 to 1.05
+		num *= factor
+		MutationCounter++
+	}
+	return num
+}
+
+type EntityState struct {
+	isReadyToDivide bool
+	isReadyToDeath  bool
+}
 
 type Entity struct {
 	// basic
 	consumptionBase float64 // expected not more than 100
 	resistance      float64 // expected not more than 100
 	grownRateBase   float64 // less than 1.0
-	mutationChance  float64
+	mutator         Mutator
 	// volatile
 	color  utils.Color
 	size   utils.Size
 	parent *Cell
+	state  EntityState
 }
 
 func (e *Entity) calculateColor() {
 	e.color.A = 1.0
-	e.color.R = e.consumptionBase / 100
-	e.color.G = e.grownRateBase
-	e.color.B = e.resistance / 100
+	e.color.R = math.Abs(baseConsumptionBase-e.consumptionBase) / baseConsumptionBase
+	e.color.G = math.Abs(baseGrownRateBase-e.grownRateBase) / baseGrownRateBase
+	e.color.B = math.Abs(baseResistance-e.resistance) / baseResistance
 }
 
 func (e *Entity) Update() {
 	vitality := (e.resistance - e.parent.BadConditions()) / e.resistance
 	if vitality <= 0 {
-		go e.die()
+		e.state.isReadyToDeath = true
 		return
 	}
 
 	grownRate := e.grownRateBase*vitality + 1
-	consumptionVolume := grownRate * e.consumptionBase
+	//consumptionVolume := grownRate * e.consumptionBase
 	// isn't enough food in the cell
-	if e.parent.Feed(consumptionVolume) < consumptionVolume {
-		go e.die()
+	/*if e.parent.Feed(consumptionVolume) < consumptionVolume {
+		e.state.isReadyToDeath = true
 		return
-	}
+	}*/
 
 	e.size *= utils.Size(grownRate)
 	if e.size >= maxSize {
-		go e.divide()
+		e.state.isReadyToDivide = true
+		return
 	}
-}
-
-func (e *Entity) die() {
-	if e.parent != nil {
-		e.parent.Kill()
-	}
-}
-
-func (e *Entity) divide() {
-	e.parent.Divide()
 }
 
 // getters
@@ -73,6 +92,12 @@ func (e *Entity) Size() utils.Size {
 func (e *Entity) Parent() *Cell {
 	return e.parent
 }
+func (e *Entity) IsReadyToDivide() bool {
+	return e.state.isReadyToDivide
+}
+func (e *Entity) IsReadyToDeath() bool {
+	return e.state.isReadyToDeath
+}
 
 func (e *Entity) SetParent(c *Cell) {
 	e.parent = c
@@ -84,19 +109,20 @@ func NewEntity() *Entity {
 	entity.resistance = baseResistance
 	entity.grownRateBase = baseGrownRateBase
 	entity.consumptionBase = baseConsumptionBase
-	entity.mutationChance = baseMutationChance
+	entity.mutator = newMutator()
 	entity.calculateColor()
+	entity.state = EntityState{false, false}
 	return entity
 }
 
 func NewEntityFrom(entity Entity) *Entity {
 	e := new(Entity)
-	mutationChance := entity.mutationChance
+	e.mutator = entity.mutator
 	e.size = baseSize
-	e.mutationChance = mutationChance
-	e.grownRateBase = utils.MutateFloat64(entity.grownRateBase, mutationChance)
-	e.resistance = utils.MutateFloat64(entity.resistance, mutationChance)
-	e.consumptionBase = utils.MutateFloat64(entity.consumptionBase, mutationChance)
+	e.grownRateBase = e.mutator.MutateFloat64(entity.grownRateBase)
+	e.resistance = e.mutator.MutateFloat64(entity.resistance)
+	e.consumptionBase = e.mutator.MutateFloat64(entity.consumptionBase)
 	e.calculateColor()
+	entity.state = EntityState{false, false}
 	return e
 }

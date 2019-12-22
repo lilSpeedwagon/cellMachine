@@ -14,7 +14,7 @@ var (
 	Warning *log.Logger
 	Error   *log.Logger
 
-	turnDelay = time.Second / 10
+	turnDelay = time.Second / 20
 )
 
 func initLog() {
@@ -31,45 +31,84 @@ func initLog() {
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-type Simulator struct {
-	field        *Cell.CellField
-	ComposerChan chan<- utils.FieldComposer
-	turnTimer    time.Ticker
-	turnCounter  int
+type SimulationInfo struct {
+	turnCounter     uint64
+	mutationCounter uint64
 }
 
-func (simulator *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
+func (info *SimulationInfo) Turns() uint64 {
+	return info.turnCounter
+}
+func (info *SimulationInfo) Mutations() uint64 {
+	return info.mutationCounter
+}
+
+func (info *SimulationInfo) Reset() {
+	info.turnCounter = 0
+	info.mutationCounter = 0
+}
+
+type Simulator struct {
+	field     *Cell.CellField
+	turnTimer time.Ticker
+	ready     bool
+	info      SimulationInfo
+
+	composerChan chan<- utils.FieldComposer
+}
+
+func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
 	initLog()
 	Log.Println("Simulation init")
 
-	simulator.ComposerChan = composerChan
-	simulator.field = Cell.NewField(w, h)
+	sim.composerChan = composerChan
+	sim.field = Cell.NewField(w, h)
 
 	e := *Cell.NewEntity()
 
 	for i := 23; i <= 26; i++ {
 		for j := 23; j <= 26; j++ {
-			simulator.field.PutEntity(e, i, j)
+			sim.field.PutEntity(e, i, j)
 		}
 	}
 
-	simulator.ComposerChan <- simulator.field.MakeComposer()
+	sim.sendAsync()
+
+	sim.ready = true
 
 	Log.Println("Ready.")
 }
 
 func (sim *Simulator) turn() {
-	sim.turnCounter++
-	Log.Println("Turn ", sim.turnCounter)
+	if sim.ready == false {
+		return
+	}
+	sim.ready = false
+
+	sim.info.turnCounter++
+	Log.Println("Turn ", sim.info.turnCounter)
+
 	sim.field.Update()
+	sim.info.mutationCounter = Cell.MutationCounter
+
+	sim.sendAsync()
+	sim.ready = true
+}
+
+func (sim *Simulator) sendAsync() {
 	composer := sim.field.MakeComposer()
-	sim.ComposerChan <- composer
+	composer.Turns = sim.info.turnCounter
+	composer.Mutations = sim.info.mutationCounter
+	select {
+	case sim.composerChan <- composer:
+	default:
+	}
 }
 
 func (sim *Simulator) Start() {
 	Log.Println("Starting simulation...")
 	rand.Seed(time.Now().UnixNano())
-	sim.turnCounter = 0
+	sim.info.Reset()
 	sim.turnTimer = *time.NewTicker(turnDelay)
 	go func() {
 		for range sim.turnTimer.C {
@@ -80,4 +119,5 @@ func (sim *Simulator) Start() {
 
 func (sim *Simulator) Stop() {
 	Log.Println("Stopping simulation...")
+	sim.turnTimer.Stop()
 }

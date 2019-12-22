@@ -16,19 +16,29 @@ type CellField struct {
 
 func (field *CellField) Divide(e Entity, x, y int) {
 	field.PutEntity(e, x, y)
-	var posX, posY int
-	for isPosEmpty := false; !isPosEmpty; {
-		posX = rand.Intn(3) + x - 1
-		posY = rand.Intn(3) + y - 1
-		posX = (posX + field.W) % field.W // bounds handling
-		posY = (posY + field.H) % field.H
-		isPosEmpty = (posX != x || posY != y) && (field.Cells[posX][posY].entity == nil)
+	// make an array with free cells and iterate through them
+
+	emptyCells := make([]utils.Position, 0)
+	for i := x - 1; i <= x+1; i++ {
+		for j := y - 1; j <= y+1; j++ {
+			if i != x || j != y {
+				posX := (i + field.W) % field.W
+				posY := (j + field.W) % field.H
+				if field.Cells[posX][posY].entity == nil {
+					emptyCells = append(emptyCells, utils.Position{posX, posY})
+				}
+			}
+		}
 	}
-	field.PutEntity(e, posX, posY)
+	emptyCount := len(emptyCells)
+	if emptyCount != 0 {
+		pos := rand.Intn(emptyCount)
+		field.PutEntity(e, emptyCells[pos].X, emptyCells[pos].Y)
+	}
 }
 
 func (field *CellField) MakeComposer() utils.FieldComposer {
-	composer := utils.DefaultFieldComposer(field.W, field.H)
+	composer := utils.MakeFieldComposer(field.W, field.H)
 
 	for i := 0; i < field.W; i++ {
 		for j := 0; j < field.H; j++ {
@@ -62,6 +72,11 @@ func (field *CellField) Update() {
 		for j := 0; j < field.H; j++ {
 			if field.Cells[i][j].entity != nil {
 				field.Cells[i][j].entity.Update()
+				if field.Cells[i][j].entity.IsReadyToDeath() {
+					field.Cells[i][j].Kill()
+				} else if field.Cells[i][j].entity.IsReadyToDivide() {
+					field.Cells[i][j].Divide()
+				}
 				field.Cells[i][j].updateColor()
 			}
 		}
@@ -80,7 +95,6 @@ func NewField(w, h int) *CellField {
 			field.Cells[i][j].field = field
 			field.Cells[i][j].x = i
 			field.Cells[i][j].y = j
-			// to delete
 			field.Cells[i][j].foodStorage = baseFood
 		}
 	}
@@ -113,13 +127,18 @@ func (c *Cell) Feed(foodVolume float64) float64 {
 }
 
 func (c *Cell) Kill() {
-	c.entity = nil
+	if c.entity != nil {
+		c.entity.parent = nil
+		c.entity = nil
+	}
 }
 
 func (c *Cell) Divide() {
-	e := *c.entity
-	c.Kill()
-	c.field.Divide(e, c.x, c.y)
+	if c.entity != nil {
+		e := *c.entity
+		c.Kill()
+		c.field.Divide(e, c.x, c.y)
+	}
 }
 
 // getters
