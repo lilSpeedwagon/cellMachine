@@ -28,7 +28,7 @@ func newMutator() Mutator {
 func (m *Mutator) MutateFloat64(num float64) float64 {
 	dice := rand.Float64()
 	if dice <= m.mutationChance {
-		factor := rand.Float64() + 0.5 // from 0.95 to 1.05
+		factor := rand.Float64()/10.0 + 0.95 // from 0.95 to 1.05
 		num *= factor
 		MutationCounter++
 	}
@@ -38,6 +38,15 @@ func (m *Mutator) MutateFloat64(num float64) float64 {
 type EntityState struct {
 	isReadyToDivide bool
 	isReadyToDeath  bool
+}
+
+// for json unmarshalling
+type EntityType struct {
+	name            string
+	consumptionBase float64
+	resistance      float64
+	grownRateBase   float64
+	mutationChance  float64
 }
 
 type Entity struct {
@@ -68,12 +77,12 @@ func (e *Entity) Update() {
 	}
 
 	grownRate := e.grownRateBase*vitality + 1
-	//consumptionVolume := grownRate * e.consumptionBase
+	consumptionVolume := grownRate * e.consumptionBase
 	// isn't enough food in the cell
-	/*if e.parent.Feed(consumptionVolume) < consumptionVolume {
+	if e.parent.Feed(consumptionVolume) < consumptionVolume {
 		e.state.isReadyToDeath = true
 		return
-	}*/
+	}
 
 	e.size *= utils.Size(grownRate)
 	if e.size >= maxSize {
@@ -115,7 +124,7 @@ func NewEntity() *Entity {
 	return entity
 }
 
-func NewEntityFrom(entity Entity) *Entity {
+func NewEntityFromEntity(entity Entity) *Entity {
 	e := new(Entity)
 	e.mutator = entity.mutator
 	e.size = baseSize
@@ -123,6 +132,18 @@ func NewEntityFrom(entity Entity) *Entity {
 	e.resistance = e.mutator.MutateFloat64(entity.resistance)
 	e.consumptionBase = e.mutator.MutateFloat64(entity.consumptionBase)
 	e.calculateColor()
-	entity.state = EntityState{false, false}
+	e.state = EntityState{false, false}
+	return e
+}
+
+func NewEntityFromEntityType(base *EntityType) *Entity {
+	e := new(Entity)
+	e.mutator = Mutator{mutationChance: base.mutationChance}
+	e.size = baseSize
+	e.grownRateBase = base.grownRateBase
+	e.resistance = base.resistance
+	e.consumptionBase = base.consumptionBase
+	e.calculateColor()
+	e.state = EntityState{false, false}
 	return e
 }

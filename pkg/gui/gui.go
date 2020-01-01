@@ -158,15 +158,19 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 			brush := NewBrush(cellComposer.BackColor)
 			cellPath := drawRect(Point{cellWidth * float64(i), cellHeight * float64(j)}, cellWidth, cellHeight)
 			params.Context.Fill(cellPath, &brush)
+			cellPath.Free()
+
 			if cellComposer.Composer.Size > 0 {
 				center := Point{cellWidth * (float64(i) + 0.5), cellHeight * (float64(j) + 0.5)}
 				radius := float64(cellComposer.Composer.Size) * cellWidth * 0.5
 				if cellWidth > cellHeight {
 					radius = float64(cellComposer.Composer.Size) * cellHeight * 0.5
 				}
+
 				entityPath := drawCircle(center, radius)
 				brush = NewBrush(cellComposer.Composer.Color)
 				params.Context.Fill(entityPath, &brush)
+				entityPath.Free()
 			}
 		}
 	}
@@ -176,11 +180,13 @@ func handleComposer(composer utils.FieldComposer, params *ui.AreaDrawParams) {
 		x := cellWidth * float64(i)
 		path := drawLine(Point{x, 0}, Point{x, params.AreaHeight})
 		params.Context.Stroke(path, &strokeBrush, &strokeParams)
+		path.Free()
 	}
 	for i := 1; i < composer.H; i++ {
 		y := cellHeight * float64(i)
 		path := drawLine(Point{0, y}, Point{params.AreaWidth, y})
 		params.Context.Stroke(path, &strokeBrush, &strokeParams)
+		path.Free()
 	}
 }
 

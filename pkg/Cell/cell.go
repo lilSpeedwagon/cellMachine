@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	baseFood = 1000
+	baseFood       = 1000
+	baseConditions = 8
 )
 
 type CellField struct {
@@ -59,7 +60,7 @@ func (field *CellField) MakeComposer() utils.FieldComposer {
 }
 
 func (field *CellField) PutEntity(e Entity, x, y int) {
-	field.Cells[x][y].entity = NewEntityFrom(e)
+	field.Cells[x][y].entity = NewEntityFromEntity(e)
 	field.Cells[x][y].entity.SetParent(&field.Cells[x][y])
 }
 
@@ -96,9 +97,17 @@ func NewField(w, h int) *CellField {
 			field.Cells[i][j].x = i
 			field.Cells[i][j].y = j
 			field.Cells[i][j].foodStorage = baseFood
+			field.Cells[i][j].badConditions = baseConditions
 		}
 	}
 	return field
+}
+
+// for json unmarshalling
+type CellType struct {
+	name        string
+	foodStorage float64
+	antibiotic  float64
 }
 
 type Cell struct {
