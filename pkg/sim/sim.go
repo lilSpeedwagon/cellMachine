@@ -9,12 +9,16 @@ import (
 	"time"
 )
 
+const (
+	turnDelay  = time.Second / 20
+	baseWidth  = 40
+	baseHeight = 40
+)
+
 var (
 	Log     *log.Logger
 	Warning *log.Logger
 	Error   *log.Logger
-
-	turnDelay = time.Second / 20
 )
 
 func initLog() {
@@ -62,7 +66,15 @@ func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
 	Log.Println("Simulation init")
 
 	sim.composerChan = composerChan
-	sim.field = Cell.NewField(w, h)
+
+	var err error
+	sim.field, err = initFieldByJSON("config.json")
+	if err != nil {
+		Error.Printf(err.Error())
+		panic(err.Error())
+	}
+
+	/*sim.field = Cell.NewField(w, h)
 
 	e := *Cell.NewEntity()
 
@@ -70,7 +82,7 @@ func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
 		for j := 23; j <= 26; j++ {
 			sim.field.PutEntity(e, i, j)
 		}
-	}
+	}*/
 
 	sim.sendAsync()
 

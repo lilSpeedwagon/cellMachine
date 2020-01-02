@@ -2,13 +2,17 @@ package Cell
 
 import (
 	"cellMachine/pkg/utils"
+	"errors"
+	"math"
 	"math/rand"
 )
 
 const (
 	baseFood       = 1000
-	baseConditions = 8
+	baseConditions = 5
 )
+
+// CellField
 
 type CellField struct {
 	Cells [][]Cell
@@ -84,7 +88,54 @@ func (field *CellField) Update() {
 	}
 }
 
+func (field *CellField) DropCell(x, y, r int, cellType CellType) error {
+	if x >= field.W || x < 0 || y >= field.H || y < 0 {
+		return errors.New("invalid index")
+	}
+
+	for i := x - r; i <= x+r; i++ {
+		for j := y - r; j <= y+r; j++ {
+			dist := math.Sqrt(float64((x - i) ^ 2 + (y - j) ^ 2))
+			if dist <= float64(r) {
+				posX := (i + field.W) % field.W
+				posY := (j + field.W) % field.H
+				field.Cells[posX][posY].badConditions = cellType.Antibiotic
+				field.Cells[posX][posY].foodStorage = cellType.FoodStorage
+				field.Cells[posX][posY].updateColor()
+			}
+		}
+	}
+
+	return nil
+}
+
+func (field *CellField) DropEntity(x, y, r int, entityType EntityType) error {
+	if x >= field.W || x < 0 || y >= field.H || y < 0 {
+		return errors.New("invalid index")
+	}
+
+	for i := x - r; i <= x+r; i++ {
+		for j := y - r; j <= y+r; j++ {
+			dist := math.Sqrt(float64((x - i) ^ 2 + (y - j) ^ 2))
+			if dist <= float64(r) {
+				posX := (i + field.W) % field.W
+				posY := (j + field.W) % field.H
+				field.Cells[posX][posY].entity = NewEntityFromEntityType(entityType)
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewField(w, h int) *CellField {
+	return NewFieldWithBaseCell(w, h, CellType{
+		FoodStorage: baseFood,
+		Antibiotic:  baseConditions,
+	})
+}
+
+func NewFieldWithBaseCell(w, h int, base CellType) *CellField {
 	field := new(CellField)
 	field.W = w
 	field.H = h
@@ -92,22 +143,23 @@ func NewField(w, h int) *CellField {
 	for i := 0; i < w; i++ {
 		field.Cells[i] = make([]Cell, h)
 		for j := 0; j < h; j++ {
-			field.Cells[i][j].color = utils.DefaultColor()
 			field.Cells[i][j].field = field
 			field.Cells[i][j].x = i
 			field.Cells[i][j].y = j
-			field.Cells[i][j].foodStorage = baseFood
-			field.Cells[i][j].badConditions = baseConditions
+			field.Cells[i][j].foodStorage = base.FoodStorage
+			field.Cells[i][j].badConditions = base.Antibiotic
+			field.Cells[i][j].updateColor()
 		}
 	}
 	return field
 }
 
+// Cell
+
 // for json unmarshalling
 type CellType struct {
-	name        string
-	foodStorage float64
-	antibiotic  float64
+	FoodStorage float64
+	Antibiotic  float64
 }
 
 type Cell struct {
@@ -121,7 +173,9 @@ type Cell struct {
 }
 
 func (c *Cell) updateColor() {
-	c.color.A = c.foodStorage / baseFood
+	c.color.R = c.badConditions / baseConditions
+	c.color.G = c.foodStorage / baseFood
+	c.color.B = 1.0
 }
 
 func (c *Cell) Feed(foodVolume float64) float64 {

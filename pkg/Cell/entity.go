@@ -136,7 +136,7 @@ func NewEntityFromEntity(entity Entity) *Entity {
 	return e
 }
 
-func NewEntityFromEntityType(base *EntityType) *Entity {
+func NewEntityFromEntityType(base EntityType) *Entity {
 	e := new(Entity)
 	e.mutator = Mutator{mutationChance: base.mutationChance}
 	e.size = baseSize
