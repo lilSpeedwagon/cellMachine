@@ -98,7 +98,7 @@ func (field *CellField) DropCell(x, y, r int, cellType CellType) error {
 			dist := math.Sqrt(float64((x - i) ^ 2 + (y - j) ^ 2))
 			if dist <= float64(r) {
 				posX := (i + field.W) % field.W
-				posY := (j + field.W) % field.H
+				posY := (j + field.H) % field.H
 				field.Cells[posX][posY].badConditions = cellType.Antibiotic
 				field.Cells[posX][posY].foodStorage = cellType.FoodStorage
 				field.Cells[posX][posY].updateColor()
@@ -119,8 +119,8 @@ func (field *CellField) DropEntity(x, y, r int, entityType EntityType) error {
 			dist := math.Sqrt(float64((x - i) ^ 2 + (y - j) ^ 2))
 			if dist <= float64(r) {
 				posX := (i + field.W) % field.W
-				posY := (j + field.W) % field.H
-				field.Cells[posX][posY].entity = NewEntityFromEntityType(entityType)
+				posY := (j + field.H) % field.H
+				field.PutEntity(*NewEntityFromEntityType(entityType), posX, posY)
 			}
 		}
 	}
@@ -158,8 +158,13 @@ func NewFieldWithBaseCell(w, h int, base CellType) *CellField {
 
 // for json unmarshalling
 type CellType struct {
+	Name        string
 	FoodStorage float64
 	Antibiotic  float64
+}
+
+func BaseCellType() CellType {
+	return CellType{Name: "base", FoodStorage: baseFood, Antibiotic: baseConditions}
 }
 
 type Cell struct {
@@ -173,9 +178,10 @@ type Cell struct {
 }
 
 func (c *Cell) updateColor() {
+	c.color.A = 1.0
 	c.color.R = c.badConditions / baseConditions
 	c.color.G = c.foodStorage / baseFood
-	c.color.B = 1.0
+	c.color.B = 0.0
 }
 
 func (c *Cell) Feed(foodVolume float64) float64 {

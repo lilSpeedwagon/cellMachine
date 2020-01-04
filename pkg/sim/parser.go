@@ -8,18 +8,30 @@ import (
 )
 
 type cellDrop struct {
-	name    string
-	x, y, r int
+	TypeName string
+	X, Y, R  int
 }
 
 type entityDrop struct {
-	name    string
-	x, y, r int
+	TypeName string
+	X, Y, R  int
+}
+
+type ParsingStruct struct {
+	CellTypes    []Cell.CellType
+	EntityTypes  []Cell.EntityType
+	Width        int
+	Height       int
+	BaseCellType string
+	CellDrops    []cellDrop
+	EntityDrops  []entityDrop
 }
 
 func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
+
 	// unmarshalling
-	var unmarshalledObjects map[string]interface{}
+	//var unmarshalledObjects Imap
+	var unmarshalledObjects ParsingStruct
 	err := json.Unmarshal(jsonBytes, &unmarshalledObjects)
 	if err != nil {
 		Error.Printf("Marshalling error: %s", err.Error())
@@ -27,71 +39,66 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 
 	Log.Printf("%s", unmarshalledObjects)
 
+	// definition of cellTypes
+	cellTypes := make(map[string]Cell.CellType, 0)
+	for i := range unmarshalledObjects.CellTypes {
+		t := unmarshalledObjects.CellTypes[i]
+		cellTypes[t.Name] = Cell.CellType{Name: t.Name, Antibiotic: t.Antibiotic, FoodStorage: t.FoodStorage}
+	}
+	Log.Printf("%s", cellTypes)
+
+	// definition of entityTypes
+	entityTypes := make(map[string]Cell.EntityType, 0)
+	for i := range unmarshalledObjects.EntityTypes {
+		e := unmarshalledObjects.EntityTypes[i]
+		entityTypes[e.Name] = Cell.EntityType{
+			Name:            e.Name,
+			ConsumptionBase: e.ConsumptionBase,
+			Resistance:      e.Resistance,
+			GrownRateBase:   e.GrownRateBase,
+			MutationChance:  e.MutationChance,
+		}
+	}
+	Log.Printf("%s", entityTypes)
+
+	// definition a base type for whole field
+	baseType := Cell.BaseCellType()
+	if t, ok := cellTypes[unmarshalledObjects.BaseCellType]; ok {
+		baseType = t
+		Log.Printf("Base type: %s", baseType)
+	} else {
+		Warning.Printf("Base type %s not found", unmarshalledObjects.BaseCellType)
+	}
+
+	// field creation
 	var field *Cell.CellField
+	field = Cell.NewFieldWithBaseCell(unmarshalledObjects.Width, unmarshalledObjects.Height, baseType)
 
-	// base values
-	w, h := baseWidth, baseHeight
-	cellTypes := map[string]Cell.CellType{}
-	entityTypes := map[string]Cell.EntityType{}
-
-	// parsing
-	if cellTypesRaw, ok := unmarshalledObjects["cellTypes"]; ok {
-		cellTypes = cellTypesRaw.(map[string]Cell.CellType)
-	} else {
-		Warning.Printf("cellTypes not found")
-	}
-
-	if entityTypesRaw, ok := unmarshalledObjects["cellTypes"]; ok {
-		entityTypes = entityTypesRaw.(map[string]Cell.EntityType)
-	} else {
-		Warning.Printf("entityTypes not found")
-	}
-
-	if wRaw, ok := unmarshalledObjects["width"]; ok {
-		w = wRaw.(int)
-	} else {
-		Warning.Printf("width not found")
-	}
-
-	if hRaw, ok := unmarshalledObjects["width"]; ok {
-		h = hRaw.(int)
-	} else {
-		Warning.Printf("height not found")
-	}
-
-	baseCellTypeName, hasBaseType := unmarshalledObjects["baseCellType"].(string)
-	if baseCellType, ok := cellTypes[baseCellTypeName]; ok && hasBaseType {
-		field = Cell.NewFieldWithBaseCell(w, h, baseCellType)
-	} else {
-		Warning.Printf("baseCellType not found")
-		field = Cell.NewField(w, h)
-	}
-
-	cellDrops, hasCellDrops := unmarshalledObjects["cellDrops"].([]cellDrop)
-	if hasCellDrops {
-		for i := range cellDrops {
-			drop := cellDrops[i]
-			if cellType, ok := cellTypes[drop.name]; ok {
-				dropErr := field.DropCell(drop.x, drop.y, drop.r, cellType)
-				if dropErr != nil {
-					Error.Printf(dropErr.Error())
-					return nil, dropErr
-				}
+	// cell drops
+	for i := range unmarshalledObjects.CellDrops {
+		d := unmarshalledObjects.CellDrops[i]
+		Log.Printf("Dropping cell of type %s in point %d : %d with radius %r", d.TypeName, d.X, d.Y, d.R)
+		if t, ok := cellTypes[d.TypeName]; ok {
+			err := field.DropCell(d.X, d.Y, d.R, t)
+			if err != nil {
+				Warning.Printf(err.Error())
 			}
+		} else {
+			Warning.Printf("Type %s not found", d.TypeName)
 		}
 	}
 
-	entityDrops, hasEntityDrops := unmarshalledObjects["entityDrops"].([]entityDrop)
-	if hasEntityDrops {
-		for i := range entityDrops {
-			drop := entityDrops[i]
-			if entityType, ok := entityTypes[drop.name]; ok {
-				dropErr := field.DropEntity(drop.x, drop.y, drop.r, entityType)
-				if dropErr != nil {
-					Error.Printf(dropErr.Error())
-					return nil, dropErr
-				}
+	// entity drops
+	for i := range unmarshalledObjects.EntityDrops {
+		d := unmarshalledObjects.EntityDrops[i]
+		Log.Printf("Dropping entity of type %s in point %d : %d with radius %r", d.TypeName, d.X, d.Y, d.R)
+		if e, ok := entityTypes[d.TypeName]; ok {
+			err := field.DropEntity(d.X, d.Y, d.R, e)
+			if err != nil {
+				Warning.Printf(err.Error())
 			}
+		} else {
+			Warning.Printf("Type %s not found", d.TypeName)
 		}
 	}
 

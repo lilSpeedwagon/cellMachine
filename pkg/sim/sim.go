@@ -74,9 +74,7 @@ func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
 		panic(err.Error())
 	}
 
-	/*sim.field = Cell.NewField(w, h)
-
-	e := *Cell.NewEntity()
+	/*e := *Cell.NewEntity()
 
 	for i := 23; i <= 26; i++ {
 		for j := 23; j <= 26; j++ {

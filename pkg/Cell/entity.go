@@ -42,11 +42,11 @@ type EntityState struct {
 
 // for json unmarshalling
 type EntityType struct {
-	name            string
-	consumptionBase float64
-	resistance      float64
-	grownRateBase   float64
-	mutationChance  float64
+	Name            string
+	ConsumptionBase float64
+	Resistance      float64
+	GrownRateBase   float64
+	MutationChance  float64
 }
 
 type Entity struct {
@@ -64,9 +64,9 @@ type Entity struct {
 
 func (e *Entity) calculateColor() {
 	e.color.A = 1.0
-	e.color.R = math.Abs(baseConsumptionBase-e.consumptionBase) / baseConsumptionBase
-	e.color.G = math.Abs(baseGrownRateBase-e.grownRateBase) / baseGrownRateBase
-	e.color.B = math.Abs(baseResistance-e.resistance) / baseResistance
+	e.color.R = math.Abs(baseConsumptionBase-e.consumptionBase)/baseConsumptionBase + 0.5
+	e.color.G = math.Abs(baseGrownRateBase-e.grownRateBase)/baseGrownRateBase + 0.5
+	e.color.B = math.Abs(baseResistance-e.resistance)/baseResistance + 0.5
 }
 
 func (e *Entity) Update() {
@@ -138,11 +138,11 @@ func NewEntityFromEntity(entity Entity) *Entity {
 
 func NewEntityFromEntityType(base EntityType) *Entity {
 	e := new(Entity)
-	e.mutator = Mutator{mutationChance: base.mutationChance}
+	e.mutator = Mutator{mutationChance: base.MutationChance}
 	e.size = baseSize
-	e.grownRateBase = base.grownRateBase
-	e.resistance = base.resistance
-	e.consumptionBase = base.consumptionBase
+	e.grownRateBase = base.GrownRateBase
+	e.resistance = base.Resistance
+	e.consumptionBase = base.ConsumptionBase
 	e.calculateColor()
 	e.state = EntityState{false, false}
 	return e
