@@ -13,6 +13,7 @@ import (
 
 const (
 	strMutations = "Mutations: "
+	strEntities  = "Entities: "
 	strTurns     = "Turns: "
 	fieldW       = 800
 	fieldH       = 800
@@ -73,6 +74,7 @@ type Uicore struct {
 	mainwin       *ui.Window
 	area          *ui.Area
 	turnLabel     *ui.Label
+	entityLabel   *ui.Label
 	mutationLabel *ui.Label
 }
 
@@ -85,10 +87,12 @@ func (core *Uicore) Init() {
 	core.mainwin.OnClosing(core.OnCloseWindow)
 
 	infoBox := ui.NewHorizontalBox()
-	core.turnLabel = ui.NewLabel("Turns: ")
+	core.turnLabel = ui.NewLabel(strTurns)
 	infoBox.Append(core.turnLabel, true)
-	core.mutationLabel = ui.NewLabel("Mutations: ")
+	core.mutationLabel = ui.NewLabel(strMutations)
 	infoBox.Append(core.mutationLabel, true)
+	core.entityLabel = ui.NewLabel(strEntities)
+	infoBox.Append(core.entityLabel, true)
 
 	areaHandler := areaHandler{composerChannel: core.ComposerChan, core: core}
 	core.area = ui.NewArea(&areaHandler)
@@ -207,6 +211,7 @@ func (handler *areaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
 	composer := <-handler.composerChannel
 	handler.core.turnLabel.SetText(strTurns + strconv.FormatUint(composer.Turns, 10))
 	handler.core.mutationLabel.SetText(strMutations + strconv.FormatUint(composer.Mutations, 10))
+	handler.core.entityLabel.SetText(strEntities + strconv.FormatUint(composer.Entities, 10))
 	if composer.Cells != nil {
 		handleComposer(composer, p)
 	}

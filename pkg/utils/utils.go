@@ -48,9 +48,9 @@ func DefaultCellComposer() CellComposer {
 }
 
 type FieldComposer struct {
-	Cells            [][]CellComposer
-	W, H             int
-	Turns, Mutations uint64
+	Cells                      [][]CellComposer
+	W, H                       int
+	Turns, Mutations, Entities uint64
 }
 
 func MakeFieldComposer(w, h int) FieldComposer {

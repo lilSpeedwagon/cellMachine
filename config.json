@@ -1,0 +1,99 @@
+{
+  "CellTypes": [
+    {
+      "Name": "baseSafetyPlant",
+      "FoodStorage": 100000,
+      "Antibiotic": 0
+    },
+    {
+      "Name": "unsafetyPlant1",
+      "FoodStorage": 100000,
+      "Antibiotic": 11
+    },
+    {
+      "Name": "unsafetyPlant2",
+      "FoodStorage": 100000,
+      "Antibiotic": 12
+    },
+    {
+      "Name": "unsafetyPlant3",
+      "FoodStorage": 100000,
+      "Antibiotic": 13
+    },
+    {
+      "Name": "unsafetyPlant4",
+      "FoodStorage": 100000,
+      "Antibiotic": 14
+    },
+    {
+      "Name": "unsafetyPlant5",
+      "FoodStorage": 100000,
+      "Antibiotic": 15
+    }
+  ],
+  "EntityTypes": [
+    {
+      "Name": "regularEntity",
+      "consumptionBase": 5,
+      "Resistance": 10,
+      "GrownRateBase": 0.4,
+      "MutationChance": 0.02
+    }
+  ],
+  "Width": 70,
+  "Height": 40,
+  "BaseCellType": "baseSafetyPlant",
+  "CellDrops":
+  [
+  ],
+  "EntityDrops":
+  [
+    {
+      "TypeName": "regularEntity",
+      "X": 5,
+      "Y": 20,
+      "R": 2
+    }
+  ],
+  "CellRects":
+  [
+    {
+      "TypeName": "unsafetyPlant1",
+      "X": 20,
+      "Y": 0,
+      "W": 10,
+      "H": 40
+    },
+    {
+      "TypeName": "unsafetyPlant2",
+      "X": 30,
+      "Y": 0,
+      "W": 10,
+      "H": 40
+    },
+    {
+      "TypeName": "unsafetyPlant3",
+      "X": 40,
+      "Y": 0,
+      "W": 10,
+      "H": 40
+    },
+    {
+      "TypeName": "unsafetyPlant4",
+      "X": 50,
+      "Y": 0,
+      "W": 10,
+      "H": 40
+    },
+    {
+      "TypeName": "unsafetyPlant5",
+      "X": 60,
+      "Y": 0,
+      "W": 10,
+      "H": 40
+    }
+  ],
+  "EntityRects":
+  [
+  ]
+}

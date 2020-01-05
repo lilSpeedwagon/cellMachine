@@ -38,6 +38,7 @@ func initLog() {
 type SimulationInfo struct {
 	turnCounter     uint64
 	mutationCounter uint64
+	entityCounter   uint64
 }
 
 func (info *SimulationInfo) Turns() uint64 {
@@ -68,19 +69,11 @@ func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
 	sim.composerChan = composerChan
 
 	var err error
-	sim.field, err = initFieldByJSON("config.json")
+	sim.field, err = initFieldByJSON("C:\\Users\\ded_e\\go\\src\\cellMachine\\config.json")
 	if err != nil {
 		Error.Printf(err.Error())
 		panic(err.Error())
 	}
-
-	/*e := *Cell.NewEntity()
-
-	for i := 23; i <= 26; i++ {
-		for j := 23; j <= 26; j++ {
-			sim.field.PutEntity(e, i, j)
-		}
-	}*/
 
 	sim.sendAsync()
 
@@ -100,6 +93,7 @@ func (sim *Simulator) turn() {
 
 	sim.field.Update()
 	sim.info.mutationCounter = Cell.MutationCounter
+	sim.info.entityCounter = sim.field.EntityCount()
 
 	sim.sendAsync()
 	sim.ready = true
@@ -109,6 +103,7 @@ func (sim *Simulator) sendAsync() {
 	composer := sim.field.MakeComposer()
 	composer.Turns = sim.info.turnCounter
 	composer.Mutations = sim.info.mutationCounter
+	composer.Entities = sim.info.entityCounter
 	select {
 	case sim.composerChan <- composer:
 	default:

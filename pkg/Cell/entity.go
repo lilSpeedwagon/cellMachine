@@ -2,7 +2,6 @@ package Cell
 
 import (
 	"cellMachine/pkg/utils"
-	"math"
 	"math/rand"
 )
 
@@ -64,9 +63,9 @@ type Entity struct {
 
 func (e *Entity) calculateColor() {
 	e.color.A = 1.0
-	e.color.R = math.Abs(baseConsumptionBase-e.consumptionBase)/baseConsumptionBase + 0.5
-	e.color.G = math.Abs(baseGrownRateBase-e.grownRateBase)/baseGrownRateBase + 0.5
-	e.color.B = math.Abs(baseResistance-e.resistance)/baseResistance + 0.5
+	e.color.R = (baseConsumptionBase-e.consumptionBase)/baseConsumptionBase + 0.5
+	e.color.G = (baseGrownRateBase-e.grownRateBase)/baseGrownRateBase + 0.5
+	e.color.B = (baseResistance-e.resistance)/baseResistance + 0.5
 }
 
 func (e *Entity) Update() {
@@ -84,11 +83,18 @@ func (e *Entity) Update() {
 		return
 	}
 
+	if e.parent.countNeighbors() >= 7 {
+		e.state.isReadyToDeath = true
+		return
+	}
+
 	e.size *= utils.Size(grownRate)
 	if e.size >= maxSize {
 		e.state.isReadyToDivide = true
 		return
 	}
+
+	e.calculateColor()
 }
 
 // getters

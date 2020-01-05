@@ -17,6 +17,16 @@ type entityDrop struct {
 	X, Y, R  int
 }
 
+type cellDropRect struct {
+	TypeName   string
+	X, Y, W, H int
+}
+
+type entityDropRect struct {
+	TypeName   string
+	X, Y, W, H int
+}
+
 type ParsingStruct struct {
 	CellTypes    []Cell.CellType
 	EntityTypes  []Cell.EntityType
@@ -25,6 +35,8 @@ type ParsingStruct struct {
 	BaseCellType string
 	CellDrops    []cellDrop
 	EntityDrops  []entityDrop
+	CellRects    []cellDropRect
+	EntityRects  []entityDropRect
 }
 
 func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
@@ -40,10 +52,17 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 	Log.Printf("%s", unmarshalledObjects)
 
 	// definition of cellTypes
+	Cell.MinAntibiotic = 100000
 	cellTypes := make(map[string]Cell.CellType, 0)
 	for i := range unmarshalledObjects.CellTypes {
 		t := unmarshalledObjects.CellTypes[i]
 		cellTypes[t.Name] = Cell.CellType{Name: t.Name, Antibiotic: t.Antibiotic, FoodStorage: t.FoodStorage}
+		if t.Antibiotic > Cell.MaxAntibiotic {
+			Cell.MaxAntibiotic = t.Antibiotic
+		}
+		if t.Antibiotic < Cell.MinAntibiotic {
+			Cell.MinAntibiotic = t.Antibiotic
+		}
 	}
 	Log.Printf("%s", cellTypes)
 
@@ -99,6 +118,34 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 			}
 		} else {
 			Warning.Printf("Type %s not found", d.TypeName)
+		}
+	}
+
+	// cell rects
+	for i := range unmarshalledObjects.CellRects {
+		r := unmarshalledObjects.CellRects[i]
+		Log.Printf("Dropping rectangle of cell of type %s in point %d : %d with size %d : %d", r.TypeName, r.X, r.Y, r.W, r.H)
+		if c, ok := cellTypes[r.TypeName]; ok {
+			err := field.DropCellRect(r.X, r.Y, r.W, r.H, c)
+			if err != nil {
+				Warning.Printf(err.Error())
+			}
+		} else {
+			Warning.Printf("Type %s not found", r.TypeName)
+		}
+	}
+
+	// entity rects
+	for i := range unmarshalledObjects.EntityRects {
+		r := unmarshalledObjects.EntityRects[i]
+		Log.Printf("Dropping rectangle of entity of type %s in point %d : %d with size %d : %d", r.TypeName, r.X, r.Y, r.W, r.H)
+		if c, ok := entityTypes[r.TypeName]; ok {
+			err := field.DropEntityRect(r.X, r.Y, r.W, r.H, c)
+			if err != nil {
+				Warning.Printf(err.Error())
+			}
+		} else {
+			Warning.Printf("Type %s not found", r.TypeName)
 		}
 	}
 
