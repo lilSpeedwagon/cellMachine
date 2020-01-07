@@ -4,6 +4,7 @@ import (
 	"cellMachine/pkg/gui"
 	"cellMachine/pkg/sim"
 	"cellMachine/pkg/utils"
+	"fmt"
 	"github.com/andlabs/ui"
 	"log"
 	"os"
@@ -29,14 +30,22 @@ func initLog() {
 		log.Ldate|log.Ltime|log.Lshortfile)
 }
 
+func showInfo() {
+	fmt.Println("<< Cell Machine >>")
+	fmt.Println("Egor Sorokin, 2019")
+	fmt.Println()
+}
+
 func main() {
+	showInfo()
 	initLog()
 	Log.Println("Application initialization...")
 
 	closeApp := make(chan bool)
 	composerChan := make(chan utils.FieldComposer)
+	readyChan := make(chan utils.Ready)
 
-	core := gui.Uicore{CloseApp: closeApp, ComposerChan: composerChan}
+	core := gui.Uicore{CloseApp: closeApp, ComposerChan: composerChan, ReadyChan: readyChan}
 	go ui.Main(core.Init)
 
 	w := 50
@@ -45,8 +54,8 @@ func main() {
 	var simulator sim.Simulator
 	simulator.Init(w, h, composerChan)
 
-	Log.Println("Ready")
-
+	// waiting for UI initialisation
+	<-readyChan
 	go simulator.Start()
 
 	<-closeApp

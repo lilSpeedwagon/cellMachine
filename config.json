@@ -1,47 +1,63 @@
 {
-  "CellTypes": [
+  "CellTypes":
+  [
     {
       "Name": "baseSafetyPlant",
-      "FoodStorage": 100000,
-      "Antibiotic": 0
+      "FoodStorage": 1000,
+      "Antibiotic": 1
     },
     {
       "Name": "unsafetyPlant1",
-      "FoodStorage": 100000,
-      "Antibiotic": 11
+      "FoodStorage": 1000,
+      "Antibiotic": 3
     },
     {
       "Name": "unsafetyPlant2",
-      "FoodStorage": 100000,
-      "Antibiotic": 12
+      "FoodStorage": 1000,
+      "Antibiotic": 5
     },
     {
       "Name": "unsafetyPlant3",
-      "FoodStorage": 100000,
-      "Antibiotic": 13
+      "FoodStorage": 1000,
+      "Antibiotic": 7
     },
     {
       "Name": "unsafetyPlant4",
-      "FoodStorage": 100000,
-      "Antibiotic": 14
+      "FoodStorage": 1000,
+      "Antibiotic": 10
     },
     {
       "Name": "unsafetyPlant5",
-      "FoodStorage": 100000,
+      "FoodStorage": 1000,
       "Antibiotic": 15
-    }
+    },
   ],
-  "EntityTypes": [
+  "EntityTypes": 
+  [
     {
       "Name": "regularEntity",
       "consumptionBase": 5,
       "Resistance": 10,
       "GrownRateBase": 0.4,
       "MutationChance": 0.02
+    },
+    {
+      "Name": "lightEntity",
+      "consumptionBase": 1,
+      "Resistance": 3,
+      "GrownRateBase": 0.2,
+      "MutationChance": 0.1
+    },
+    {
+      "Name": "strongEntity",
+      "consumptionBase": 10,
+      "Resistance": 20,
+      "GrownRateBase": 0.3,
+      "MutationChance": 0.01
     }
   ],
-  "Width": 70,
-  "Height": 40,
+  "Width": 50,
+  "Height": 50,
   "BaseCellType": "baseSafetyPlant",
   "CellDrops":
   [
@@ -49,9 +65,9 @@
   "EntityDrops":
   [
     {
-      "TypeName": "regularEntity",
-      "X": 5,
-      "Y": 20,
+      "TypeName": "lightEntity",
+      "X": 10,
+      "Y": 10,
       "R": 2
     }
   ],
@@ -59,38 +75,38 @@
   [
     {
       "TypeName": "unsafetyPlant1",
-      "X": 20,
-      "Y": 0,
+      "X": 0,
+      "Y": 20,
       "W": 10,
-      "H": 40
+      "H": 30
     },
     {
       "TypeName": "unsafetyPlant2",
-      "X": 30,
-      "Y": 0,
+      "X": 10,
+      "Y": 20,
       "W": 10,
-      "H": 40
+      "H": 30
     },
     {
       "TypeName": "unsafetyPlant3",
-      "X": 40,
-      "Y": 0,
+      "X": 20,
+      "Y": 20,
       "W": 10,
-      "H": 40
+      "H": 30
     },
     {
       "TypeName": "unsafetyPlant4",
-      "X": 50,
-      "Y": 0,
+      "X": 30,
+      "Y": 20,
       "W": 10,
-      "H": 40
+      "H": 30
     },
     {
       "TypeName": "unsafetyPlant5",
-      "X": 60,
-      "Y": 0,
+      "X": 40,
+      "Y": 20,
       "W": 10,
-      "H": 40
+      "H": 30
     }
   ],
   "EntityRects":

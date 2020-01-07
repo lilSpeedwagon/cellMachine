@@ -89,7 +89,6 @@ func (sim *Simulator) turn() {
 	sim.ready = false
 
 	sim.info.turnCounter++
-	Log.Println("Turn ", sim.info.turnCounter)
 
 	sim.field.Update()
 	sim.info.mutationCounter = Cell.MutationCounter

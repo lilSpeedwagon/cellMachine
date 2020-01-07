@@ -69,6 +69,7 @@ var (
 type Uicore struct {
 	CloseApp     chan<- bool
 	ComposerChan <-chan utils.FieldComposer
+	ReadyChan    chan<- utils.Ready
 	redrawTimer  time.Ticker
 
 	mainwin       *ui.Window
@@ -107,24 +108,20 @@ func (core *Uicore) Init() {
 		return true
 	})
 
+	core.ReadyChan <- utils.Ready{}
+	Log.Println("UI is ready.")
+
 	core.redrawTimer = *time.NewTicker(redrawDelay)
 	go func() {
 		for range core.redrawTimer.C {
 			core.area.QueueRedrawAll()
 		}
 	}()
-
-	core.mainwin.Show()
-	Log.Println("UI is ready.")
-}
-
-func (core *Uicore) ShowWindow() {
 	core.mainwin.Show()
 }
 
 func (core *Uicore) OnCloseWindow(window *ui.Window) bool {
 	Log.Println("Closing window...")
-	core.mainwin.Destroy()
 	core.CloseApp <- true
 	ui.Quit()
 	return true
@@ -201,13 +198,6 @@ type areaHandler struct {
 }
 
 func (handler *areaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
-	Log.Println("Draw call.")
-	// non blocking composer receiving
-	/*select {
-	case handler.Composer = <-handler.ComposerChannel:
-		Log.Println("New field composer received.")
-	default:
-	}*/
 	composer := <-handler.composerChannel
 	handler.core.turnLabel.SetText(strTurns + strconv.FormatUint(composer.Turns, 10))
 	handler.core.mutationLabel.SetText(strMutations + strconv.FormatUint(composer.Mutations, 10))

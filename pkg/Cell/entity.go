@@ -12,6 +12,11 @@ const (
 	baseConsumptionBase = 5
 	baseMutationChance  = 0.01
 	baseGrownRateBase   = 0.2
+
+	// for color calculation
+	borderResistance  = 15
+	borderConsumption = 10
+	borderGrownRate   = 1.0
 )
 
 var MutationCounter uint64
@@ -62,10 +67,10 @@ type Entity struct {
 }
 
 func (e *Entity) calculateColor() {
-	e.color.A = 1.0
-	e.color.R = (baseConsumptionBase-e.consumptionBase)/baseConsumptionBase + 0.5
-	e.color.G = (baseGrownRateBase-e.grownRateBase)/baseGrownRateBase + 0.5
-	e.color.B = (baseResistance-e.resistance)/baseResistance + 0.5
+	e.color.A = 0.8
+	e.color.R = e.resistance / borderResistance
+	e.color.G = e.grownRateBase / borderGrownRate
+	e.color.B = e.consumptionBase / borderConsumption
 }
 
 func (e *Entity) Update() {
@@ -79,11 +84,6 @@ func (e *Entity) Update() {
 	consumptionVolume := grownRate * e.consumptionBase
 	// isn't enough food in the cell
 	if e.parent.Feed(consumptionVolume) < consumptionVolume {
-		e.state.isReadyToDeath = true
-		return
-	}
-
-	if e.parent.countNeighbors() >= 7 {
 		e.state.isReadyToDeath = true
 		return
 	}

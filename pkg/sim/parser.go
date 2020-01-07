@@ -42,11 +42,11 @@ type ParsingStruct struct {
 func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 
 	// unmarshalling
-	//var unmarshalledObjects Imap
 	var unmarshalledObjects ParsingStruct
 	err := json.Unmarshal(jsonBytes, &unmarshalledObjects)
 	if err != nil {
 		Error.Printf("Marshalling error: %s", err.Error())
+		return nil, err
 	}
 
 	Log.Printf("%s", unmarshalledObjects)

@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	baseFood       = 1000
+	baseFood       = 10000
+	baseFoodDelta  = 1
 	baseConditions = 5
+	maxCellAlpha   = 0.6
 )
 
 var (
@@ -20,7 +22,8 @@ var (
 // CellField
 
 type CellField struct {
-	Cells       [][]Cell
+	cells       [][]Cell
+	newCells    [][]Cell
 	W, H        int
 	entityCount uint64
 }
@@ -30,7 +33,6 @@ func (field *CellField) EntityCount() uint64 {
 }
 
 func (field *CellField) Divide(e Entity, x, y int) {
-	field.PutEntity(e, x, y)
 	// make an array with free cells and iterate through them
 
 	emptyCells := make([]utils.Position, 0)
@@ -39,16 +41,19 @@ func (field *CellField) Divide(e Entity, x, y int) {
 			if i != x || j != y {
 				posX := (i + field.W) % field.W
 				posY := (j + field.H) % field.H
-				if field.Cells[posX][posY].entity == nil {
+				if field.newCells[posX][posY].entity == nil {
 					emptyCells = append(emptyCells, utils.Position{posX, posY})
 				}
 			}
 		}
 	}
 	emptyCount := len(emptyCells)
-	if emptyCount != 0 {
+	if emptyCount > 3 {
 		pos := rand.Intn(emptyCount)
 		field.PutEntity(e, emptyCells[pos].X, emptyCells[pos].Y)
+		if emptyCount > 4 {
+			field.PutEntity(e, x, y)
+		}
 	}
 }
 
@@ -58,12 +63,12 @@ func (field *CellField) MakeComposer() utils.FieldComposer {
 	for i := 0; i < field.W; i++ {
 		for j := 0; j < field.H; j++ {
 			entityComposer := utils.EmptyEntityComposer()
-			if field.Cells[i][j].entity != nil {
-				entityComposer.Size = field.Cells[i][j].entity.Size()
-				entityComposer.Color = field.Cells[i][j].entity.Color()
+			if field.cells[i][j].entity != nil {
+				entityComposer.Size = field.cells[i][j].entity.Size()
+				entityComposer.Color = field.cells[i][j].entity.Color()
 			}
 			cellComposer := utils.CellComposer{
-				BackColor: field.Cells[i][j].color,
+				BackColor: field.cells[i][j].color,
 				Composer:  entityComposer,
 			}
 			composer.Cells[i][j] = cellComposer
@@ -74,27 +79,59 @@ func (field *CellField) MakeComposer() utils.FieldComposer {
 }
 
 func (field *CellField) PutEntity(e Entity, x, y int) {
-	field.Cells[x][y].entity = NewEntityFromEntity(e)
-	field.Cells[x][y].entity.SetParent(&field.Cells[x][y])
+	field.newCells[x][y].entity = NewEntityFromEntity(e)
+	field.newCells[x][y].entity.SetParent(&field.newCells[x][y])
 	field.entityCount++
 }
 
-func (field *CellField) Update() {
+func (field *CellField) copyCellsToNew() {
 	for i := 0; i < field.W; i++ {
 		for j := 0; j < field.H; j++ {
-			if field.Cells[i][j].entity != nil {
-				field.Cells[i][j].entity.Update()
-				if field.Cells[i][j].entity.IsReadyToDeath() {
-					field.Cells[i][j].Kill()
-					field.entityCount--
-				} else if field.Cells[i][j].entity.IsReadyToDivide() {
-					field.Cells[i][j].Divide()
-					field.entityCount--
-				}
-				field.Cells[i][j].updateColor()
+			field.newCells[i][j] = field.cells[i][j]
+			// make copy of entity to avoid pointers which point to same memory
+			if field.cells[i][j].entity != nil {
+				var e = new(Entity)
+				e = field.cells[i][j].entity
+				e.SetParent(&field.newCells[i][j])
+				field.newCells[i][j].entity = e
 			}
 		}
 	}
+}
+
+func (field *CellField) copyCellsFromNew() {
+	for i := 0; i < field.W; i++ {
+		for j := 0; j < field.H; j++ {
+			field.cells[i][j] = field.newCells[i][j]
+		}
+	}
+}
+
+func (field *CellField) Update() {
+	field.copyCellsToNew()
+	for i := 0; i < field.W; i++ {
+		for j := 0; j < field.H; j++ {
+			cell := &field.newCells[i][j]
+
+			if cell.foodStorage < cell.maxFood {
+				field.newCells[i][j].foodStorage += baseFoodDelta
+			}
+
+			if cell.entity != nil {
+				cell.entity.Update()
+				if cell.entity.IsReadyToDeath() {
+					cell.Kill()
+					field.entityCount--
+				} else if cell.entity.IsReadyToDivide() {
+					cell.Divide()
+					field.entityCount--
+				}
+			}
+
+			cell.updateColor()
+		}
+	}
+	field.copyCellsFromNew()
 }
 
 func (field *CellField) drop(x, y, r int, operation func(int, int)) error {
@@ -118,15 +155,18 @@ func (field *CellField) drop(x, y, r int, operation func(int, int)) error {
 
 func (field *CellField) DropCell(x, y, r int, cellType CellType) error {
 	return field.drop(x, y, r, func(posX, posY int) {
-		field.Cells[posX][posY].badConditions = cellType.Antibiotic
-		field.Cells[posX][posY].foodStorage = cellType.FoodStorage
-		field.Cells[posX][posY].updateColor()
+		field.cells[posX][posY].badConditions = cellType.Antibiotic
+		field.cells[posX][posY].foodStorage = cellType.FoodStorage
+		field.cells[posX][posY].maxFood = cellType.FoodStorage
+		field.cells[posX][posY].updateColor()
 	})
 }
 
 func (field *CellField) DropEntity(x, y, r int, entityType EntityType) error {
 	return field.drop(x, y, r, func(posX, posY int) {
-		field.PutEntity(*NewEntityFromEntityType(entityType), posX, posY)
+		field.cells[x][y].entity = NewEntityFromEntityType(entityType)
+		field.cells[x][y].entity.SetParent(&field.cells[x][y])
+		field.entityCount++
 	})
 }
 
@@ -155,15 +195,18 @@ func (field *CellField) dropRect(x, y, w, h int, operation func(int, int)) error
 
 func (field *CellField) DropCellRect(x, y, w, h int, cellType CellType) error {
 	return field.dropRect(x, y, w, h, func(posX, posY int) {
-		field.Cells[posX][posY].badConditions = cellType.Antibiotic
-		field.Cells[posX][posY].foodStorage = cellType.FoodStorage
-		field.Cells[posX][posY].updateColor()
+		field.cells[posX][posY].badConditions = cellType.Antibiotic
+		field.cells[posX][posY].foodStorage = cellType.FoodStorage
+		field.cells[posX][posY].maxFood = cellType.FoodStorage
+		field.cells[posX][posY].updateColor()
 	})
 }
 
 func (field *CellField) DropEntityRect(x, y, w, h int, entityType EntityType) error {
 	return field.dropRect(x, y, w, h, func(posX, posY int) {
-		field.PutEntity(*NewEntityFromEntityType(entityType), posX, posY)
+		field.cells[x][y].entity = NewEntityFromEntityType(entityType)
+		field.cells[x][y].entity.SetParent(&field.cells[x][y])
+		field.entityCount++
 	})
 }
 
@@ -178,20 +221,25 @@ func NewFieldWithBaseCell(w, h int, base CellType) *CellField {
 	field := new(CellField)
 	field.W = w
 	field.H = h
-	field.Cells = make([][]Cell, w)
+	field.cells = make([][]Cell, w)
+	field.newCells = make([][]Cell, w)
 	for i := 0; i < w; i++ {
-		field.Cells[i] = make([]Cell, h)
+		field.cells[i] = make([]Cell, h)
+		field.newCells[i] = make([]Cell, h)
 		for j := 0; j < h; j++ {
-			field.Cells[i][j].field = field
-			field.Cells[i][j].x = i
-			field.Cells[i][j].y = j
-			field.Cells[i][j].foodStorage = base.FoodStorage
-			field.Cells[i][j].badConditions = base.Antibiotic
-			field.Cells[i][j].updateColor()
+			field.cells[i][j].field = field
+			field.cells[i][j].x = i
+			field.cells[i][j].y = j
+			field.cells[i][j].foodStorage = base.FoodStorage
+			field.cells[i][j].maxFood = base.FoodStorage
+			field.cells[i][j].badConditions = base.Antibiotic
+			field.cells[i][j].updateColor()
 		}
 	}
 	return field
 }
+
+// end of CellField
 
 // Cell
 
@@ -212,15 +260,13 @@ type Cell struct {
 	color       utils.Color
 	x, y        int
 	foodStorage float64
+	maxFood     float64
 	// to split in several
 	badConditions float64
 }
 
 func (c *Cell) updateColor() {
-	c.color.A = c.foodStorage / baseFood
-	if c.color.A > 0.5 {
-		c.color.A = 0.5
-	}
+	c.color.A = c.foodStorage / c.maxFood * maxCellAlpha
 	c.color.R = (c.badConditions - MinAntibiotic) / (MaxAntibiotic - MinAntibiotic)
 	c.color.G = 0.3
 	c.color.B = 0.3
@@ -260,18 +306,4 @@ func (c *Cell) BadConditions() float64 {
 	return c.badConditions
 }
 
-func (c *Cell) countNeighbors() int {
-	count := 0
-	for i := c.x - 1; i <= c.x+1; i++ {
-		for j := c.y - 1; j <= c.y+1; j++ {
-			if i != c.x || j != c.y {
-				posX := (i + c.field.W) % c.field.W
-				posY := (j + c.field.H) % c.field.H
-				if c.field.Cells[posX][posY].entity != nil {
-					count++
-				}
-			}
-		}
-	}
-	return count
-}
+// end of Cell
