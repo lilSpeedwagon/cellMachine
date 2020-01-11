@@ -62,14 +62,14 @@ type Simulator struct {
 	composerChan chan<- utils.FieldComposer
 }
 
-func (sim *Simulator) Init(w, h int, composerChan chan utils.FieldComposer) {
+func (sim *Simulator) Init(configPath string, composerChan chan utils.FieldComposer) {
 	initLog()
 	Log.Println("Simulation init")
 
 	sim.composerChan = composerChan
 
 	var err error
-	sim.field, err = initFieldByJSON("C:\\Users\\ded_e\\go\\src\\cellMachine\\config.json")
+	sim.field, err = initFieldByJSON(configPath)
 	if err != nil {
 		Error.Printf(err.Error())
 		panic(err.Error())

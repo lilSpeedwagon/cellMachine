@@ -27,7 +27,7 @@ type entityDropRect struct {
 	X, Y, W, H int
 }
 
-type ParsingStruct struct {
+type parsingStruct struct {
 	CellTypes    []Cell.CellType
 	EntityTypes  []Cell.EntityType
 	Width        int
@@ -42,14 +42,12 @@ type ParsingStruct struct {
 func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 
 	// unmarshalling
-	var unmarshalledObjects ParsingStruct
+	var unmarshalledObjects parsingStruct
 	err := json.Unmarshal(jsonBytes, &unmarshalledObjects)
 	if err != nil {
 		Error.Printf("Marshalling error: %s", err.Error())
 		return nil, err
 	}
-
-	Log.Printf("%s", unmarshalledObjects)
 
 	// definition of cellTypes
 	Cell.MinAntibiotic = 100000
@@ -64,7 +62,6 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 			Cell.MinAntibiotic = t.Antibiotic
 		}
 	}
-	Log.Printf("%s", cellTypes)
 
 	// definition of entityTypes
 	entityTypes := make(map[string]Cell.EntityType, 0)
@@ -78,13 +75,11 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 			MutationChance:  e.MutationChance,
 		}
 	}
-	Log.Printf("%s", entityTypes)
 
 	// definition a base type for whole field
 	baseType := Cell.BaseCellType()
 	if t, ok := cellTypes[unmarshalledObjects.BaseCellType]; ok {
 		baseType = t
-		Log.Printf("Base type: %s", baseType)
 	} else {
 		Warning.Printf("Base type %s not found", unmarshalledObjects.BaseCellType)
 	}
@@ -161,7 +156,10 @@ func initFieldByJSON(fileName string) (*Cell.CellField, error) {
 	}
 	defer func() {
 		Warning.Printf("Closing file %s...", fileName)
-		file.Close()
+		err := file.Close()
+		if err != nil {
+			Error.Printf(err.Error())
+		}
 	}()
 
 	jsonBytes, err := ioutil.ReadAll(file)

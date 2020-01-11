@@ -41,6 +41,12 @@ func main() {
 	initLog()
 	Log.Println("Application initialization...")
 
+	configPath := "config.json"
+	args := os.Args[1:]
+	if len(args) > 0 {
+		configPath = args[0]
+	}
+
 	closeApp := make(chan bool)
 	composerChan := make(chan utils.FieldComposer)
 	readyChan := make(chan utils.Ready)
@@ -48,11 +54,8 @@ func main() {
 	core := gui.Uicore{CloseApp: closeApp, ComposerChan: composerChan, ReadyChan: readyChan}
 	go ui.Main(core.Init)
 
-	w := 50
-	h := 50
-
 	var simulator sim.Simulator
-	simulator.Init(w, h, composerChan)
+	simulator.Init(configPath, composerChan)
 
 	// waiting for UI initialisation
 	<-readyChan
