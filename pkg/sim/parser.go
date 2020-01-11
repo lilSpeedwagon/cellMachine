@@ -33,6 +33,7 @@ type parsingStruct struct {
 	Width        int
 	Height       int
 	BaseCellType string
+	DropFood     bool
 	CellDrops    []cellDrop
 	EntityDrops  []entityDrop
 	CellRects    []cellDropRect
@@ -84,9 +85,12 @@ func parseJson(jsonBytes []byte) (*Cell.CellField, error) {
 		Warning.Printf("Base type %s not found", unmarshalledObjects.BaseCellType)
 	}
 
+	var dropFood bool = unmarshalledObjects.DropFood
+
 	// field creation
 	var field *Cell.CellField
 	field = Cell.NewFieldWithBaseCell(unmarshalledObjects.Width, unmarshalledObjects.Height, baseType)
+	field.DropFood(dropFood)
 
 	// cell drops
 	for i := range unmarshalledObjects.CellDrops {

@@ -117,6 +117,11 @@ func (sim *Simulator) Start() {
 	go func() {
 		for range sim.turnTimer.C {
 			sim.turn()
+			if sim.field.EntityCount() == 0 {
+				Warning.Printf("All cells are dead.")
+				sim.Stop()
+				break
+			}
 		}
 	}()
 }

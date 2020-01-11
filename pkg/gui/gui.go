@@ -72,6 +72,8 @@ type Uicore struct {
 	ReadyChan    chan<- utils.Ready
 	redrawTimer  time.Ticker
 
+	composer utils.FieldComposer
+
 	mainwin       *ui.Window
 	area          *ui.Area
 	turnLabel     *ui.Label
@@ -114,6 +116,7 @@ func (core *Uicore) Init() {
 	core.redrawTimer = *time.NewTicker(redrawDelay)
 	go func() {
 		for range core.redrawTimer.C {
+			core.composer = <-core.ComposerChan
 			core.area.QueueRedrawAll()
 		}
 	}()
@@ -198,12 +201,11 @@ type areaHandler struct {
 }
 
 func (handler *areaHandler) Draw(a *ui.Area, p *ui.AreaDrawParams) {
-	composer := <-handler.composerChannel
-	handler.core.turnLabel.SetText(strTurns + strconv.FormatUint(composer.Turns, 10))
-	handler.core.mutationLabel.SetText(strMutations + strconv.FormatUint(composer.Mutations, 10))
-	handler.core.entityLabel.SetText(strEntities + strconv.FormatUint(composer.Entities, 10))
-	if composer.Cells != nil {
-		handleComposer(composer, p)
+	handler.core.turnLabel.SetText(strTurns + strconv.FormatUint(handler.core.composer.Turns, 10))
+	handler.core.mutationLabel.SetText(strMutations + strconv.FormatUint(handler.core.composer.Mutations, 10))
+	handler.core.entityLabel.SetText(strEntities + strconv.FormatUint(handler.core.composer.Entities, 10))
+	if handler.core.composer.Cells != nil {
+		handleComposer(handler.core.composer, p)
 	}
 }
 

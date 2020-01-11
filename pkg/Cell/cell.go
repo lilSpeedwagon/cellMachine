@@ -31,6 +31,11 @@ type CellField struct {
 	W, H          int
 	entityCount   uint64
 	foodDropCount uint32
+	dropFood      bool
+}
+
+func (field *CellField) DropFood(enable bool) {
+	field.dropFood = enable
 }
 
 func (field *CellField) EntityCount() uint64 {
@@ -124,17 +129,19 @@ func (field *CellField) copyCellsFromNew() {
 func (field *CellField) Update() {
 	field.copyCellsToNew()
 
-	field.foodDropCount++
-	if field.foodDropCount > foodDropDelay {
-		field.foodDropCount = 0
-		_ = field.drop(rand.Intn(field.W), rand.Intn(field.H),
-			rand.Intn(foodDropMaxR-foodDropMinR)+foodDropMinR,
-			func(posX, posY int) {
-				field.newCells[posX][posY].foodStorage += foodDropVolume
-				if field.newCells[posX][posY].foodStorage > field.newCells[posX][posY].maxFood {
-					field.newCells[posX][posY].foodStorage = field.newCells[posX][posY].maxFood
-				}
-			})
+	if field.dropFood {
+		field.foodDropCount++
+		if field.foodDropCount > foodDropDelay {
+			field.foodDropCount = 0
+			_ = field.drop(rand.Intn(field.W), rand.Intn(field.H),
+				rand.Intn(foodDropMaxR-foodDropMinR)+foodDropMinR,
+				func(posX, posY int) {
+					field.newCells[posX][posY].foodStorage += foodDropVolume
+					if field.newCells[posX][posY].foodStorage > field.newCells[posX][posY].maxFood {
+						field.newCells[posX][posY].foodStorage = field.newCells[posX][posY].maxFood
+					}
+				})
+		}
 	}
 
 	for i := 0; i < field.W; i++ {
