@@ -9,9 +9,13 @@ import (
 
 const (
 	baseFood       = 10000
-	baseFoodDelta  = 1
 	baseConditions = 5
 	maxCellAlpha   = 0.6
+
+	foodDropDelay  = 500
+	foodDropVolume = 500
+	foodDropMinR   = 5
+	foodDropMaxR   = 12
 )
 
 var (
@@ -22,10 +26,11 @@ var (
 // CellField
 
 type CellField struct {
-	cells       [][]Cell
-	newCells    [][]Cell
-	W, H        int
-	entityCount uint64
+	cells         [][]Cell
+	newCells      [][]Cell
+	W, H          int
+	entityCount   uint64
+	foodDropCount uint32
 }
 
 func (field *CellField) EntityCount() uint64 {
@@ -34,7 +39,6 @@ func (field *CellField) EntityCount() uint64 {
 
 func (field *CellField) Divide(e Entity, x, y int) {
 	// make an array with free cells and iterate through them
-
 	emptyCells := make([]utils.Position, 0)
 	for i := x - 1; i <= x+1; i++ {
 		for j := y - 1; j <= y+1; j++ {
@@ -50,9 +54,9 @@ func (field *CellField) Divide(e Entity, x, y int) {
 	emptyCount := len(emptyCells)
 	if emptyCount > 3 {
 		pos := rand.Intn(emptyCount)
-		field.PutEntity(e, emptyCells[pos].X, emptyCells[pos].Y)
+		field.putEntityToNew(e, emptyCells[pos].X, emptyCells[pos].Y)
 		if emptyCount > 4 {
-			field.PutEntity(e, x, y)
+			field.putEntityToNew(e, x, y)
 		}
 	}
 }
@@ -78,10 +82,20 @@ func (field *CellField) MakeComposer() utils.FieldComposer {
 	return composer
 }
 
-func (field *CellField) PutEntity(e Entity, x, y int) {
+func (field *CellField) putEntityToNew(e Entity, x, y int) {
+	if field.newCells[x][y].entity == nil {
+		field.entityCount++
+	}
 	field.newCells[x][y].entity = NewEntityFromEntity(e)
 	field.newCells[x][y].entity.SetParent(&field.newCells[x][y])
-	field.entityCount++
+}
+
+func (field *CellField) putEntity(e Entity, x, y int) {
+	if field.cells[x][y].entity == nil {
+		field.entityCount++
+	}
+	field.cells[x][y].entity = NewEntityFromEntity(e)
+	field.cells[x][y].entity.SetParent(&field.newCells[x][y])
 }
 
 func (field *CellField) copyCellsToNew() {
@@ -109,22 +123,30 @@ func (field *CellField) copyCellsFromNew() {
 
 func (field *CellField) Update() {
 	field.copyCellsToNew()
+
+	field.foodDropCount++
+	if field.foodDropCount > foodDropDelay {
+		field.foodDropCount = 0
+		_ = field.drop(rand.Intn(field.W), rand.Intn(field.H),
+			rand.Intn(foodDropMaxR-foodDropMinR)+foodDropMinR,
+			func(posX, posY int) {
+				field.newCells[posX][posY].foodStorage += foodDropVolume
+				if field.newCells[posX][posY].foodStorage > field.newCells[posX][posY].maxFood {
+					field.newCells[posX][posY].foodStorage = field.newCells[posX][posY].maxFood
+				}
+			})
+	}
+
 	for i := 0; i < field.W; i++ {
 		for j := 0; j < field.H; j++ {
 			cell := &field.newCells[i][j]
-
-			if cell.foodStorage < cell.maxFood {
-				field.newCells[i][j].foodStorage += baseFoodDelta
-			}
 
 			if cell.entity != nil {
 				cell.entity.Update()
 				if cell.entity.IsReadyToDeath() {
 					cell.Kill()
-					field.entityCount--
 				} else if cell.entity.IsReadyToDivide() {
 					cell.Divide()
-					field.entityCount--
 				}
 			}
 
@@ -163,10 +185,9 @@ func (field *CellField) DropCell(x, y, r int, cellType CellType) error {
 }
 
 func (field *CellField) DropEntity(x, y, r int, entityType EntityType) error {
+	e := NewEntityFromEntityType(entityType)
 	return field.drop(x, y, r, func(posX, posY int) {
-		field.cells[x][y].entity = NewEntityFromEntityType(entityType)
-		field.cells[x][y].entity.SetParent(&field.cells[x][y])
-		field.entityCount++
+		field.putEntity(*e, posX, posX)
 	})
 }
 
@@ -203,10 +224,9 @@ func (field *CellField) DropCellRect(x, y, w, h int, cellType CellType) error {
 }
 
 func (field *CellField) DropEntityRect(x, y, w, h int, entityType EntityType) error {
+	e := NewEntityFromEntityType(entityType)
 	return field.dropRect(x, y, w, h, func(posX, posY int) {
-		field.cells[x][y].entity = NewEntityFromEntityType(entityType)
-		field.cells[x][y].entity.SetParent(&field.cells[x][y])
-		field.entityCount++
+		field.putEntity(*e, posX, posY)
 	})
 }
 
@@ -287,6 +307,7 @@ func (c *Cell) Kill() {
 	if c.entity != nil {
 		c.entity.parent = nil
 		c.entity = nil
+		c.field.entityCount--
 	}
 }
 

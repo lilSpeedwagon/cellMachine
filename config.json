@@ -43,9 +43,9 @@
     },
     {
       "Name": "lightEntity",
-      "consumptionBase": 1,
+      "consumptionBase": 0.5,
       "Resistance": 3,
-      "GrownRateBase": 0.2,
+      "GrownRateBase": 0.3,
       "MutationChance": 0.1
     },
     {

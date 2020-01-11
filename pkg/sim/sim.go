@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	turnDelay  = time.Second / 20
+	turnDelay  = time.Second / 50
 	baseWidth  = 40
 	baseHeight = 40
 )
