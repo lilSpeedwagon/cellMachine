@@ -1,8 +1,10 @@
 # cellMachine
 
-Pet project for Cellular automaton discovering and Golang studying.
+Cell machine is a living cells simulator which is based on modified Conway's Game of Life rules. Main aim of the project - Golang language study.
+
+In the basic there is cell grid W x H. To avoid misunderstanding let's call these cells as exactly <i>Cells</i> and living creatures inside them as <i>Entities</i>. Every cell has following parameters: food storage and volume of antibiotic. These parameters affect on growth and reproduction of entities. Every entity needs a food and good conditions to grow. Entity life cycle is divided into two parts: growth and division. Division happens in suitable conditions and only if there is not so much entities around (less than 5). Also an entity has its own unique parameters: base speed of growth, resistance to antibiotic, base food consumption volume and mutation chance. Depending of this chance, every entity could <i>mutate</i> during division. In other words, every parameter of entity could be ocassionaly changed during translating to posterity. This way we can simulate life cycle of cell or bacterium colonies in conditions similar to Petry dish. For example, it is possible to watch on natural selection processes. During simulation, parameters of every cell or entity are represented by a color. For cells: red is a level of antibiotic and transparency is a lack of food (in comparison with initial value). For entities: red is an antibiotic resistance, green is a base growth rate, blue is a base food consumption volume.
+
+You can enter initial conditions for simulation using <i>config.json</i> file (example is stored in the repository). Cell and entity types describe basic types of initial objects. Entity/cell drops and rectangles describe areas which will be filled by specified type of entity/cell. <i>BaseCellType</i> is a type of cell for filling a whole field. <i>DropFood</i> flag should be enabled if you want automatically add little food volumes in random areas (in shape of circles) to avoid interruption the simulation due to a lack of food.
 
 ui lib for graphics:
 https://github.com/andlabs/ui
-
-TBD
